@@ -88,6 +88,11 @@ populate_ref_bins() {
     ln -sfn "/opt/homebrew/bin/tmuxinator" "$base/$ref/bin/tmuxinator"
   fi
 
+  if [ "$name" = "checkov" ] && [ -x "/opt/homebrew/bin/checkov" ]; then
+    mkdir -p "$base/$ref/bin"
+    ln -sfn "/opt/homebrew/bin/checkov" "$base/$ref/bin/checkov"
+  fi
+
   if [ "$name" = "Backlog.md" ]; then
     if [ -d "$base/upstream/dist" ] && [ ! -e "$base/$ref/dist" ]; then
       ln -sfn "../upstream/dist" "$base/$ref/dist"
@@ -144,7 +149,7 @@ cleanup_stale_branch_refs() {
   esac
   for old_ref in main master trunk; do
     if [ -d "$base/$old_ref" ]; then
-      git -C "$base/upstream" worktree remove --force "$base/$old_ref" 2>/dev/null || rm -rf "$base/$old_ref"
+      git -C "$base/upstream" worktree remove --force "$base/$old_ref" 2>/dev/null || rm -rf "${base:?}/${old_ref:?}"
     fi
     rm -f "$base/bundles/${old_ref}.bundle"
   done
