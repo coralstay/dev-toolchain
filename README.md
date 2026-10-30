@@ -83,9 +83,9 @@ dev-toolchain-uninstall --dry-run --yes
 
 <br>
 
-## 🔗 글로벌 / 로컬 `.tool-versions` 통합 명세 규격
+## 글로벌 / 로컬 `.tool-versions` 통합 명세 규격
 
-`asdf`는 `#`으로 시작하는 줄을 주석으로 무시하므로, 표준 `.tool-versions` 파일 안에 **`# @oss`** 지시자를 함께 적어 언어와 오픈소스 종속성을 단일 파일로 관리합니다.
+`asdf`는 `#`으로 시작하는 줄을 주석으로 무시하므로, 표준 `.tool-versions` 파일 안에 `# @oss` 지시자를 함께 적어 언어와 오픈소스 종속성을 단일 파일로 관리합니다.
 
 ### 1계층: 글로벌 SSOT (`~/githubs/dev-tools/dev-toolchain/.tool-versions` == `~/.tool-versions`)
 ```text
@@ -119,15 +119,15 @@ uv 0.12.9
 # @oss core    Backlog.md       v1.55.3
 ```
 
-### 3. 오픈소스 버전 컨테이너 + Git Bundle 아키텍처 (`opensource/in-use/<이름>/`)
-다른 프로젝트가 오픈소스를 심볼릭 링크로 참조할 때 `git checkout` 충돌 없이 특정 버전을 불변(immutable)으로 고정하기 위해, 모든 오픈소스는 아래 컨테이너 구조로 관리됩니다:
+### 3. 오픈소스 버전 컨테이너 + Git Bundle 구조 (`opensource/in-use/<이름>/`)
+다른 프로젝트가 오픈소스를 심볼릭 링크로 참조할 때 특정 버전을 가져올 수 있도록 아래 구조로 관리합니다:
 
 ```text
 opensource/in-use/<오픈소스명>/
 ├── upstream/               # 원본 upstream git clone (fetch/업데이트 모체)
 ├── bundles/
-│   └── <버전태그>.bundle   # git bundle create로 영구 박제한 단일 아카이브 파일
-├── <버전태그>/             # git worktree로 풀려 있는 실제 버전 폴더 (심볼릭 링크 타겟)
+│   └── <버전태그>.bundle   # 특정 버전의 git bundle 아카이브 파일
+├── <버전태그>/             # git worktree로 풀려 있는 버전 폴더 (심볼릭 링크 타겟)
 └── current -> <버전태그>   # 전역 기본 버전 심볼릭 링크
 ```
 

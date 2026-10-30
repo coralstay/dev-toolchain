@@ -8,7 +8,7 @@
 #
 # Open-Source Container Layout (opensource/in-use/<name>/):
 #   ├── upstream/               # Upstream git clone
-#   ├── bundles/<ref>.bundle    # Immutable git bundle archive for <ref>
+#   ├── bundles/<ref>.bundle    # Git bundle archive for <ref>
 #   ├── <ref>/                  # Materialized version directory (symlink target)
 #   └── current -> <ref>        # Active global default symlink
 #
@@ -329,7 +329,7 @@ cmd_help() {
 
 4. 오픈소스 디렉터리 구조 (opensource/in-use/<이름>/):
   ├── upstream/                  원본 git clone (fetch/업데이트 모체)
-  ├── bundles/<버전>.bundle      특정 버전 영구 박제용 git bundle 아카이브
+  ├── bundles/<버전>.bundle      특정 버전 git bundle 아카이브
   ├── <버전>/                    다른 프로젝트가 심볼릭 링크로 참조하는 버전별 폴더
   └── current -> <버전>          전역 기본 버전 심볼릭 링크
 ==============================================================================
