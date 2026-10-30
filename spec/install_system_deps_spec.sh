@@ -18,7 +18,7 @@ Describe 'scripts/install/03_install_system_deps.sh'
       esac
     End
     When run "$SCRIPT"
-    The output should include 'MOCK: brew install install openssl readline'\
+    The output should include 'MOCK: brew install install openssl@3 readline'\
 ' sqlite3 xz zlib tcl-tk'
     rm -f "$report_file"
   End
@@ -29,7 +29,7 @@ Describe 'scripts/install/03_install_system_deps.sh'
       echo 'UNEXPECTED: brew was actually invoked'
     End
     When run "$SCRIPT"
-    The output should include '+ brew install openssl readline sqlite3 xz'\
+    The output should include '+ brew install openssl@3 readline sqlite3 xz'\
 ' zlib tcl-tk'
     The output should not include 'UNEXPECTED'
   End

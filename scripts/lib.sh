@@ -30,7 +30,7 @@ DRY_RUN="${DRY_RUN:-false}"
 # Single source of truth for scripts/install/03_install_system_deps.sh,
 # scripts/uninstall/04_remove_system_deps.sh, and ensure_build_flags() below
 # (which only needs the openssl/readline/sqlite3/zlib subset — see there).
-readonly LT_BUILD_DEPS="openssl readline sqlite3 xz zlib tcl-tk"
+readonly LT_BUILD_DEPS="openssl@3 readline sqlite3 xz zlib tcl-tk"
 
 # lt_homebrew_prefix (TASK-61): prints Homebrew's install prefix for the
 # CPU architecture this script is running on right now. Apple Silicon and
@@ -334,13 +334,13 @@ PATH=\"\$ASDF_DATA_DIR/shims:\$PATH\"" \
     "opt/sqlite/bin|||append|||export \
 PATH=\"$homebrew_prefix/opt/sqlite/bin:\$PATH\"" \
     "LDFLAGS.*openssl|||append|||export LDFLAGS=\"-L\$(brew --prefix \
-openssl)/lib -L\$(brew --prefix readline)/lib -L\$(brew --prefix \
+openssl@3)/lib -L\$(brew --prefix readline)/lib -L\$(brew --prefix \
 sqlite3)/lib -L\$(brew --prefix zlib)/lib\"" \
     "CPPFLAGS.*openssl|||append|||export CPPFLAGS=\"-I\$(brew --prefix \
-openssl)/include -I\$(brew --prefix readline)/include -I\$(brew --prefix \
+openssl@3)/include -I\$(brew --prefix readline)/include -I\$(brew --prefix \
 sqlite3)/include -I\$(brew --prefix zlib)/include\"" \
     "PKG_CONFIG_PATH.*openssl|||append|||export PKG_CONFIG_PATH=\"\$(brew \
---prefix openssl)/lib/pkgconfig:\$(brew --prefix \
+--prefix openssl@3)/lib/pkgconfig:\$(brew --prefix \
 readline)/lib/pkgconfig:\$(brew --prefix sqlite3)/lib/pkgconfig\""
 }
 
@@ -1050,7 +1050,7 @@ ensure_build_flags() {
   # per line; `set --` (not `read`, which would eat the last line without a
   # trailing newline) re-splits that into positional params on newlines only,
   # same idiom used for SELECT_OPTS/SED_ARGS elsewhere in this codebase.
-  prefixes="$(brew --prefix openssl readline sqlite3 zlib)"
+  prefixes="$(brew --prefix openssl@3 readline sqlite3 zlib)"
   IFS="
 "
   # shellcheck disable=SC2086

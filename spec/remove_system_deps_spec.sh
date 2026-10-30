@@ -22,13 +22,13 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
   It 'uninstalls every installed LT_BUILD_DEPS formula'
     Mock brew
       case "$1 $2" in
-        "list openssl") exit 0 ;;
+        "list openssl@3") exit 0 ;;
         "list readline") exit 0 ;;
         "list sqlite3") exit 0 ;;
         "list xz") exit 0 ;;
         "list zlib") exit 0 ;;
         "list tcl-tk") exit 0 ;;
-        "uninstall openssl") echo "UNINSTALLED: $2" ;;
+        "uninstall openssl@3") echo "UNINSTALLED: $2" ;;
         "uninstall readline") echo "UNINSTALLED: $2" ;;
         "uninstall sqlite3") echo "UNINSTALLED: $2" ;;
         "uninstall xz") echo "UNINSTALLED: $2" ;;
@@ -37,14 +37,14 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
       esac
     End
     When run "$SCRIPT"
-    The output should include 'UNINSTALLED: openssl'
+    The output should include 'UNINSTALLED: openssl@3'
     The output should include 'UNINSTALLED: tcl-tk'
   End
 
   It 'skips a formula that is not installed, without erroring'
     Mock brew
       case "$1 $2" in
-        "list openssl") exit 1 ;;
+        "list openssl@3") exit 1 ;;
         "list readline") exit 1 ;;
         "list sqlite3") exit 1 ;;
         "list xz") exit 1 ;;
@@ -61,17 +61,17 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
   It 'treats "required by another package" as informational, not fatal'
     Mock brew
       case "$1 $2" in
-        "list openssl") exit 0 ;;
+        "list openssl@3") exit 0 ;;
         "list readline") exit 1 ;;
         "list sqlite3") exit 1 ;;
         "list xz") exit 1 ;;
         "list zlib") exit 1 ;;
         "list tcl-tk") exit 1 ;;
-        "uninstall openssl") exit 1 ;;
+        "uninstall openssl@3") exit 1 ;;
       esac
     End
     When run "$SCRIPT"
     The status should be success
-    The output should include 'Skipped openssl'
+    The output should include 'Skipped openssl@3'
   End
 End
