@@ -93,6 +93,22 @@ populate_ref_bins() {
     ln -sfn "/opt/homebrew/bin/checkov" "$base/$ref/bin/checkov"
   fi
 
+  # Fallback: if <ref>/bin is still empty for a Homebrew-installed CLI tool
+  # (e.g. after a fresh clone of upstream/), link from /opt/homebrew/bin.
+  brew_cmd=""
+  case "$name" in
+    neovim)   brew_cmd="nvim" ;;
+    ripgrep)  brew_cmd="rg" ;;
+    tlrc)     brew_cmd="tldr" ;;
+    vim|tmux|bat|gh|btop|tig|tokei|jq|yq|shellcheck|shfmt|actionlint|hyperfine|ruff|vulture|sqlfluff|terraform|tflint|terraform-docs|trivy|gitleaks|infracost|conftest|kubeconform|k3d|k6|podman|docker-compose)
+      brew_cmd="$name"
+      ;;
+  esac
+  if [ -n "$brew_cmd" ] && [ ! -e "$base/$ref/bin/$brew_cmd" ] && [ -x "/opt/homebrew/bin/$brew_cmd" ]; then
+    mkdir -p "$base/$ref/bin"
+    ln -sfn "/opt/homebrew/bin/$brew_cmd" "$base/$ref/bin/$brew_cmd"
+  fi
+
   if [ "$name" = "Backlog.md" ]; then
     if [ -d "$base/upstream/dist" ] && [ ! -e "$base/$ref/dist" ]; then
       ln -sfn "../upstream/dist" "$base/$ref/dist"
