@@ -20,17 +20,26 @@ set -eu
 #
 # LANGTOOLCHAIN_REPO_URL / LANGTOOLCHAIN_BRANCH (TASK-117.6): same opt-in
 # override as install.sh — see its copy of this comment for the reasoning.
-readonly REPO_URL="${LANGTOOLCHAIN_REPO_URL:-https://github.com/coralstay/langtoolchain.git}"
+readonly REPO_URL="${LANGTOOLCHAIN_REPO_URL:-https://github.com/coralstay/dev-toolchain.git}"
 readonly BRANCH="${LANGTOOLCHAIN_BRANCH:-108188739d7cf493981a1cdb89789612d2790b5a}"
 
 # $0, not ${BASH_SOURCE[0]:-} (POSIX sh has no BASH_SOURCE) — see
 # install.sh for why the -f check below is what actually does the real/
 # piped-stdin discrimination, verified empirically there.
-readonly SELF_PATH="$0"
-if [ -n "$SELF_PATH" ] && [ -f "$SELF_PATH" ]; then
-  SELF_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
+SELF_PATH="$0"
+if [ -n "$SELF_PATH" ] && { [ -f "$SELF_PATH" ] || [ -h "$SELF_PATH" ]; }; then
+  while [ -h "$SELF_PATH" ]; do
+    _LINK_DIR="$(cd -P "$(dirname "$SELF_PATH")" && pwd)"
+    SELF_PATH="$(readlink "$SELF_PATH")"
+    case "$SELF_PATH" in
+      /*) ;;
+      *) SELF_PATH="$_LINK_DIR/$SELF_PATH" ;;
+    esac
+  done
+  SELF_DIR="$(cd -P "$(dirname "$SELF_PATH")" && pwd)"
   readonly SELF_DIR
 fi
+readonly SELF_PATH
 
 if [ -n "${SELF_DIR:-}" ] && [ -d "$SELF_DIR/scripts/uninstall" ]; then
   # Local clone: run in place, no network needed.

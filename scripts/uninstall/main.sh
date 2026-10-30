@@ -9,6 +9,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 readonly SCRIPT_DIR
 . "$SCRIPT_DIR/../lib.sh"
 
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help|help)
+      printf '%s\n' "사용법 (Usage): dev-toolchain-uninstall [--yes] [--dry-run] [-h|--help]"
+      printf '%s\n' "  --yes       확인 프롬프트 없이 즉시 제거 실행"
+      printf '%s\n' "  --dry-run   실제 변경 없이 제거 예정 항목만 미리보기"
+      printf '%s\n' "  -h, --help  이 도움말 출력"
+      exit 0
+      ;;
+  esac
+done
+
 # Exclusive lock (TASK-84), shared with install/main.sh, so this can't race
 # another uninstall or an install. Must be first, before the confirmation
 # prompt even, so nothing below ever runs concurrently with another instance.

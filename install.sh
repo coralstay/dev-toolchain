@@ -41,7 +41,7 @@ set -eu
 # takeover, so accepting an override here doesn't weaken anything the
 # default path actually promised. Only fires the warning below when one of
 # these is actually set, so the default (no env vars) path stays silent.
-readonly REPO_URL="${LANGTOOLCHAIN_REPO_URL:-https://github.com/coralstay/langtoolchain.git}"
+readonly REPO_URL="${LANGTOOLCHAIN_REPO_URL:-https://github.com/coralstay/dev-toolchain.git}"
 readonly BRANCH="${LANGTOOLCHAIN_BRANCH:-108188739d7cf493981a1cdb89789612d2790b5a}"
 
 # $0 is this file's own path when it was executed from an actual file on
@@ -52,13 +52,28 @@ readonly BRANCH="${LANGTOOLCHAIN_BRANCH:-108188739d7cf493981a1cdb89789612d2790b5
 # invocation gives a $0 that resolves to an existing file, while the
 # piped-stdin case gives a bare interpreter name with no such file in the
 # current directory. Verified empirically for both cases.
-readonly SELF_PATH="$0"
-if [ -n "$SELF_PATH" ] && [ -f "$SELF_PATH" ]; then
-  SELF_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
+SELF_PATH="$0"
+if [ -n "$SELF_PATH" ] && { [ -f "$SELF_PATH" ] || [ -h "$SELF_PATH" ]; }; then
+  while [ -h "$SELF_PATH" ]; do
+    _LINK_DIR="$(cd -P "$(dirname "$SELF_PATH")" && pwd)"
+    SELF_PATH="$(readlink "$SELF_PATH")"
+    case "$SELF_PATH" in
+      /*) ;;
+      *) SELF_PATH="$_LINK_DIR/$SELF_PATH" ;;
+    esac
+  done
+  SELF_DIR="$(cd -P "$(dirname "$SELF_PATH")" && pwd)"
   readonly SELF_DIR
 fi
+readonly SELF_PATH
 
 if [ -n "${SELF_DIR:-}" ] && [ -d "$SELF_DIR/scripts/install" ]; then
+  # Subcommands for Global/Local .tool-versions & Open-Source (@oss) management
+  case "${1:-}" in
+    status|--status|current|--current|project|--project|sync|--sync|help|--help|-h)
+      exec sh "$SELF_DIR/scripts/oss_sync.sh" "$@"
+      ;;
+  esac
   # Running from an existing local clone — use it as-is, no network needed.
   # `exec` replaces this process instead of spawning a child, so there's no
   # extra shell left dangling once the real installer takes over.
