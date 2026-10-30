@@ -2,7 +2,7 @@
 
 # 🧰 dev-toolchain
 
-**macOS 언어 런타임(`asdf`) 및 오픈소스 생태계 도구(`@oss`) 통합 버전 매니저**
+macOS 언어 런타임(`asdf`) 및 오픈소스 생태계 도구(`@oss`) 통합 버전 매니저
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white)](#-사전-요구사항)
@@ -22,7 +22,7 @@ curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
 
 <br>
 
-> ⚠️ **macOS 전용, 개인 툴링입니다.** Linux/Windows(WSL 포함) 지원 계획이 없고, 범용
+> ⚠️ macOS 전용, 개인 툴링입니다. Linux/Windows(WSL 포함) 지원 계획이 없고, 범용
 > 프로덕션 도구로 만든 게 아니라 제 개인 Mac 워크플로우에 맞춰 만든 도구입니다 — 다른
 > 환경에서의 동작이나 일반적인 사용 사례를 보장하지 않습니다.
 
@@ -30,12 +30,12 @@ curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
 
 새 Mac마다 Homebrew·asdf 설치, 플러그인 추가, `.zshrc` 손보기, 그리고 언어마다 따라붙는 수십 개의 오픈소스 도구(`ruff`, `shellspec`, `bats`, `googletest`, `terraform`, `trivy`, `yq` 등) 버전 맞추기를 반복하는 게 지겨워서 만들었습니다.
 
-- 🍺 **Homebrew 없어도 OK** — 없으면 공식 스크립트로 자동 설치 (sudo 비밀번호만 직접 입력)
-- ☑️ **체크박스 같은 대화형 설치** — 언어별로 설치 여부와 버전을 확인하고 골라서 설치
-- 🔗 **언어 + 오픈소스(`@oss`) 단일 파일 통합** — `.tool-versions` 파일 하나에 언어 런타임 버전과 오픈소스 브랜치/태그 종속성을 함께 선언
-- 🌍 **글로벌 SSOT + 프로젝트별 로컬 오버라이드** — 전역 기본값(`dev-tools/dev-toolchain/.tool-versions`)과 프로젝트별 로컬(`.tool-versions`) 2계층 관리
-- 🔙 **깔끔한 제거** — 설치한 건 전부 되돌릴 수 있음 (`.bak` 백업까지 남김)
-- 🖥️ **POSIX sh 호환** — macOS 기본 셸(`/bin/sh`)에서도 그대로 동작, bash 특수문법 없음
+- 🍺 Homebrew 없어도 OK — 없으면 공식 스크립트로 자동 설치 (sudo 비밀번호만 직접 입력)
+- ☑️ 체크박스 같은 대화형 설치 — 언어별로 설치 여부와 버전을 확인하고 골라서 설치
+- 🔗 언어 + 오픈소스(`@oss`) 단일 파일 통합 — `.tool-versions` 파일 하나에 언어 런타임 버전과 오픈소스 브랜치/태그 종속성을 함께 선언
+- 🌍 글로벌 SSOT + 프로젝트별 로컬 오버라이드 — 전역 기본값(`dev-tools/dev-toolchain/.tool-versions`)과 프로젝트별 로컬(`.tool-versions`) 2계층 관리
+- 🔙 깔끔한 제거 — 설치한 건 전부 되돌릴 수 있음 (`.bak` 백업까지 남김)
+- 🖥️ POSIX sh 호환 — macOS 기본 셸(`/bin/sh`)에서도 그대로 동작, bash 특수문법 없음
 
 <br>
 
@@ -248,12 +248,12 @@ Python 컴파일에 필요한 Homebrew 패키지(`openssl`, `readline`, `sqlite3
 설치할 다른 `brew` 패키지, 이 도구가 깔지 않은 다른 asdf 플러그인은 install 쪽에서든 uninstall
 쪽에서든 손대지 않습니다. uninstall은 langtoolchain이 설치하지 않은 asdf 플러그인 각각도,
 `asdf` 자체와 `~/.asdf/`(asdf 데이터 디렉토리) 전체 삭제도 모두 설치 시점 스냅샷을 기준으로
-판단합니다 — **개별 플러그인이든 `~/.asdf/` 전체든, 설치 시점에 이미 있었다는 게 확인되면(또는
-확인할 수 없으면) 삭제를 건너뛰고 경고만 남깁니다** — 다른 asdf 플러그인이 있어도 무조건 함께
+판단합니다 — 개별 플러그인이든 `~/.asdf/` 전체든, 설치 시점에 이미 있었다는 게 확인되면(또는
+확인할 수 없으면) 삭제를 건너뛰고 경고만 남깁니다 — 다른 asdf 플러그인이 있어도 무조건 함께
 지워지던 예전 동작과 다릅니다. uninstall이 phase 전체를 에러 없이 마치면 이 설치 시점 스냅샷
 자체도 지워집니다 — 다음 install이 그 시점의 실제 상태로 새 기준선을 잡습니다.
 
-> **⚠️ 동작 변경 안내(m-13)**: 이 변경 이전 버전으로 이미 설치해 둔 상태에서 langtoolchain을
+> ⚠️ 동작 변경 안내(m-13): 이 변경 이전 버전으로 이미 설치해 둔 상태에서 langtoolchain을
 > 업데이트만 한 경우, install 시점 스냅샷이 없으므로 uninstall을 실행해도 안전을 위해 asdf
 > 플러그인 개별 삭제와 `~/.asdf/` 전체 삭제가 모두 기본적으로 스킵됩니다(설치 전부터 있던
 > 상태인지 판단할 근거가 없기 때문 — "모르면 지우지 않는다"는 원칙). langtoolchain이 설치한
@@ -303,12 +303,12 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 
 ### 범위상 한계
 
-- **macOS 전용** — Linux/Windows 미지원.
-- **언어 5개 고정** — Node.js/Java/Python/Rust/Go 외 언어는 코드를 직접 고쳐야 추가 가능. 순수 asdf처럼 임의 플러그인을 자유롭게 추가하는 기능은 없음.
-- **동반 도구는 nodejs/java/python 셋뿐** — pnpm(nodejs), gradle(java), uv(python, poetry 대신 채택 — decision-5) 외 언어는 동반 도구 개념이 없음(Rust/Go는 cargo/모듈 시스템이 이미 내장이라 필요 없다고 판단). 언어당 동반 도구는 항상 1개만 제안하는 UX라 poetry를 쓰고 싶다면 "직접 입력" 경로로 pin하거나 저장소 밖에서 따로 관리해야 함.
-- **핵심 목적("컴파일러 설치")보다 넓은 기능이 있음** — 전역/로컬 버전 고정, 대화형 선택기는 사실 asdf 버전 관리를 감싼 부가 기능. 한 번 검토를 거쳐 "유지"로 결정했고, 걷어낼 계획은 없음.
-- **Homebrew/asdf 외 도구체인은 지원 대상 아님** — MacPorts(`/opt/local`)는 경로 자체가 겹치지 않아 파일 충돌은 없지만, 같은 이름의 바이너리를 깔았다면 rc 파일에서 나중에 소싱되는 쪽이 이긴다. `mise`처럼 `.tool-versions`를 직접 읽고 자체 PATH 훅으로 셸을 활성화하는 도구는 더 실질적인 위험 — rc 파일에서 langtoolchain보다 나중에 로드되면 asdf shim을 조용히 가릴 수 있음. 둘 다 감지/경고 로직은 없음.
-- **동적 기본값이 asdf가 아직 못 따라잡은 최신 버전을 제안할 수 있음** — 언어 버전 기본값을 언어 공식 소스(예: cpython 태그)에서 실시간으로 가져오는데(m-12), asdf 플러그인이 그 버전을 아직 지원 안 하면 설치가 "version not installable"로 실패할 수 있음(decision-12). m-15(실제 설치 가능한 버전 목록 기반 선택 UI)가 완료되면 애초에 asdf 미지원 버전은 선택지에도 안 뜨게 되어 구조적으로 해소될 예정.
+- macOS 전용 — Linux/Windows 미지원.
+- 언어 5개 고정 — Node.js/Java/Python/Rust/Go 외 언어는 코드를 직접 고쳐야 추가 가능. 순수 asdf처럼 임의 플러그인을 자유롭게 추가하는 기능은 없음.
+- 동반 도구는 nodejs/java/python 셋뿐 — pnpm(nodejs), gradle(java), uv(python, poetry 대신 채택 — decision-5) 외 언어는 동반 도구 개념이 없음(Rust/Go는 cargo/모듈 시스템이 이미 내장이라 필요 없다고 판단). 언어당 동반 도구는 항상 1개만 제안하는 UX라 poetry를 쓰고 싶다면 "직접 입력" 경로로 pin하거나 저장소 밖에서 따로 관리해야 함.
+- 핵심 목적("컴파일러 설치")보다 넓은 기능이 있음 — 전역/로컬 버전 고정, 대화형 선택기는 사실 asdf 버전 관리를 감싼 부가 기능. 한 번 검토를 거쳐 "유지"로 결정했고, 걷어낼 계획은 없음.
+- Homebrew/asdf 외 도구체인은 지원 대상 아님 — MacPorts(`/opt/local`)는 경로 자체가 겹치지 않아 파일 충돌은 없지만, 같은 이름의 바이너리를 깔았다면 rc 파일에서 나중에 소싱되는 쪽이 이긴다. `mise`처럼 `.tool-versions`를 직접 읽고 자체 PATH 훅으로 셸을 활성화하는 도구는 더 실질적인 위험 — rc 파일에서 langtoolchain보다 나중에 로드되면 asdf shim을 조용히 가릴 수 있음. 둘 다 감지/경고 로직은 없음.
+- 동적 기본값이 asdf가 아직 못 따라잡은 최신 버전을 제안할 수 있음 — 언어 버전 기본값을 언어 공식 소스(예: cpython 태그)에서 실시간으로 가져오는데(m-12), asdf 플러그인이 그 버전을 아직 지원 안 하면 설치가 "version not installable"로 실패할 수 있음(decision-12). m-15(실제 설치 가능한 버전 목록 기반 선택 UI)가 완료되면 애초에 asdf 미지원 버전은 선택지에도 안 뜨게 되어 구조적으로 해소될 예정.
 
 ### 다운로드/설치 체인 신뢰 경계 (m-11)
 
@@ -318,14 +318,14 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 검증 기법 자체의 조사는 [docs/download-integrity-techniques.md](docs/download-integrity-techniques.md)를
 참고하세요.
 
-**이 저장소가 직접 검증하는 지점**
+이 저장소가 직접 검증하는 지점
 
 | 지점                                        | 방식                                                                                                |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `install.sh`/`uninstall.sh`의 self-clone    | 플로팅 브랜치 대신 고정 커밋 SHA로 pin — 브랜치가 강제 push돼도 이미 pin된 커밋만 받음              |
 | Homebrew 공식 설치 스크립트(`curl \| bash`) | 고정 커밋으로 pin + 이 프로젝트가 직접 계산한 SHA-256 체크섬을 fetch 직후 대조, 불일치 시 실행 거부 |
 
-**위임/통제 밖 지점 (이 저장소가 직접 검증하지 않음)**
+위임/통제 밖 지점 (이 저장소가 직접 검증하지 않음)
 
 | 지점                                                        | 위임 대상 / 통제 밖인 이유                                                                                                      |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -333,7 +333,7 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 | `asdf plugin add`(asdf-nodejs/asdf-python 등 플러그인 소스) | asdf CLI(0.20.0)가 커밋 고정을 지원하지 않음 — 검토 후 미고정 결정, 매 install 실행마다 각 플러그인 저장소의 최신 HEAD로 갱신됨 |
 | `asdf install`(실제 언어 런타임 다운로드)                   | 각 asdf 플러그인 내부 로직 — 이 저장소가 직접 관여할 수 없음                                                                    |
 
-**명시적으로 범위 밖: GitHub 저장소/계정 자체의 탈취.** 공격자가 저장소나 메인테이너 계정을
+명시적으로 범위 밖: GitHub 저장소/계정 자체의 탈취. 공격자가 저장소나 메인테이너 계정을
 완전히 장악하면 install.sh에 박힌 고정 커밋 SHA 자체도 함께 바꿀 수 있어, 위 pin들로는
 막을 수 없습니다. 이건 GitHub 쪽 계정 레벨 통제(브랜치 보호 규칙, 서명된 커밋 요구, 2FA)의
 영역이며, 셸 설치 스크립트 하나가 풀 수 있는 문제가 아니라고 판단해 이 마일스톤의 범위 밖으로
@@ -341,9 +341,9 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 
 ### 테스트 검증의 한계
 
-- **로컬 shellspec은 실제 Homebrew/asdf를 건드리지 않음** — `spec/`의 183개 예제는 전부 실제 `brew`/`asdf` 명령을 모킹하거나 `DRY_RUN=true`로 실행되도록 설계됨(진짜 컴파일/설치는 느리고 개발 머신을 오염시키므로). 그래서 "진짜로 설치가 되는가" 자체는 로컬 스위트가 보장하지 않고, `.github/workflows/e2e-verify.yml`(GitHub 호스팅 macOS 러너, arm64+Intel)이 유일한 실기기 검증 경로임 — `main` 브랜치에 `scripts/**`/`install.sh`/`uninstall.sh`/`.tool-versions`가 바뀔 때만 push/PR로 자동 실행(그 외 커밋은 `workflow_dispatch`로 수동 실행).
-- **화살표 키 TUI는 표준 터미널 기준으로만 검증** — `stty`/`dd`로 raw 모드를 읽는 `lt_arrow_menu()`는 `expect`로 구동한 실제 pty(및 일반 터미널 앱)에서는 확인했지만, 모든 터미널 에뮬레이터·멀티플렉서(tmux/screen 등)·SSH 경유 세션 조합까지 다 검증하지는 않음 — 표준 3바이트 ANSI 이스케이프(`ESC [ A/B`)를 벗어나는 비표준 키 전송 방식에서는 예상과 다르게 동작할 수 있음.
-- **`curl | sh`의 "기본" 원격 clone 경로(진짜 GitHub 대상)는 로컬에서 재현하기 어려움** — `LANGTOOLCHAIN_REPO_URL`/`LANGTOOLCHAIN_BRANCH` 환경변수로 fork/다른 브랜치를 가리켜 override하는 경로 자체는 TASK-117.6 이후 로컬 bare 저장소(`file://`)를 대상으로 `spec/repo_override_spec.sh`가 커버함(pinned-fetch 메커니즘의 exact-ref 동작까지 포함). 다만 override 없이 기본값(고정 커밋 SHA, 실제 GitHub)을 타는 경로 자체는 여전히 로컬 스위트 대상이 아니며, 실제 `curl | sh`로 이 저장소를 직접 당겨 검증한 것과 `.github/workflows/e2e-verify.yml`의 `no-git-curl-pipe` 잡(실제 GitHub의 `main` raw 파일을 당김)이 유일한 검증 경로.
+- 로컬 shellspec은 실제 Homebrew/asdf를 건드리지 않음 — `spec/`의 183개 예제는 전부 실제 `brew`/`asdf` 명령을 모킹하거나 `DRY_RUN=true`로 실행되도록 설계됨(진짜 컴파일/설치는 느리고 개발 머신을 오염시키므로). 그래서 "진짜로 설치가 되는가" 자체는 로컬 스위트가 보장하지 않고, `.github/workflows/e2e-verify.yml`(GitHub 호스팅 macOS 러너, arm64+Intel)이 유일한 실기기 검증 경로임 — `main` 브랜치에 `scripts/**`/`install.sh`/`uninstall.sh`/`.tool-versions`가 바뀔 때만 push/PR로 자동 실행(그 외 커밋은 `workflow_dispatch`로 수동 실행).
+- 화살표 키 TUI는 표준 터미널 기준으로만 검증 — `stty`/`dd`로 raw 모드를 읽는 `lt_arrow_menu()`는 `expect`로 구동한 실제 pty(및 일반 터미널 앱)에서는 확인했지만, 모든 터미널 에뮬레이터·멀티플렉서(tmux/screen 등)·SSH 경유 세션 조합까지 다 검증하지는 않음 — 표준 3바이트 ANSI 이스케이프(`ESC [ A/B`)를 벗어나는 비표준 키 전송 방식에서는 예상과 다르게 동작할 수 있음.
+- `curl | sh`의 "기본" 원격 clone 경로(진짜 GitHub 대상)는 로컬에서 재현하기 어려움 — `LANGTOOLCHAIN_REPO_URL`/`LANGTOOLCHAIN_BRANCH` 환경변수로 fork/다른 브랜치를 가리켜 override하는 경로 자체는 TASK-117.6 이후 로컬 bare 저장소(`file://`)를 대상으로 `spec/repo_override_spec.sh`가 커버함(pinned-fetch 메커니즘의 exact-ref 동작까지 포함). 다만 override 없이 기본값(고정 커밋 SHA, 실제 GitHub)을 타는 경로 자체는 여전히 로컬 스위트 대상이 아니며, 실제 `curl | sh`로 이 저장소를 직접 당겨 검증한 것과 `.github/workflows/e2e-verify.yml`의 `no-git-curl-pipe` 잡(실제 GitHub의 `main` raw 파일을 당김)이 유일한 검증 경로.
 
 ### 앞으로 살펴볼 만한 것
 
