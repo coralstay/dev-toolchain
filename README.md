@@ -1,15 +1,15 @@
 <div align="center">
 
-# 🧰 langtoolchain
+# 🧰 dev-toolchain
 
-**macOS 한 줄 명령으로 Node.js · Java · Python · Rust · Go 컴파일러를 통째로 설치**
+**macOS 언어 런타임(`asdf`) 및 오픈소스 생태계 도구(`@oss`) 통합 버전 매니저**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white)](#-사전-요구사항)
 [![Shell](https://img.shields.io/badge/shell-POSIX%20sh-4EAA25)](#-기여하기)
 [![Powered by asdf](https://img.shields.io/badge/powered%20by-asdf-F16436)](https://asdf-vm.com)
 
-`git clone`도, 수동 설치도 필요 없습니다. 터미널에 한 줄 붙여넣으면 끝.
+단 하나의 `.tool-versions` 규격으로 언어 컴파일러·런타임과 언어별 결합된 오픈소스(`opensource/in-use`)의 브랜치·태그를 함께 관리합니다.
 
 </div>
 
@@ -17,7 +17,7 @@
 
 ```zsh
 curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/coralstay/langtoolchain/main/install.sh | sh
+  https://raw.githubusercontent.com/coralstay/dev-toolchain/main/install.sh | sh
 ```
 
 <br>
@@ -28,19 +28,119 @@ curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
 
 ## 왜 만들었나
 
-새 Mac마다 Homebrew·asdf 설치, 플러그인 추가, `.zshrc` 손보기를 반복하는 게 지겨워서 만들었습니다. **이제는 한 줄이면 됩니다.** Homebrew·asdf 설치부터 언어 선택, 셸 설정까지 전부 자동입니다.
+새 Mac마다 Homebrew·asdf 설치, 플러그인 추가, `.zshrc` 손보기, 그리고 언어마다 따라붙는 수십 개의 오픈소스 도구(`ruff`, `shellspec`, `bats`, `googletest`, `terraform`, `trivy`, `yq` 등) 버전 맞추기를 반복하는 게 지겨워서 만들었습니다.
 
 - 🍺 **Homebrew 없어도 OK** — 없으면 공식 스크립트로 자동 설치 (sudo 비밀번호만 직접 입력)
 - ☑️ **체크박스 같은 대화형 설치** — 언어별로 설치 여부와 버전을 확인하고 골라서 설치
-- 🌐 **`curl | sh` 완전 지원** — 로컬에 아무것도 없어도 원격 저장소를 알아서 clone해서 실행
-- 🌍 **전역 or 디렉토리별 버전 고정** — 시스템 전체 기본값으로도, 특정 프로젝트에만도 자유롭게
+- 🔗 **언어 + 오픈소스(`@oss`) 단일 파일 통합** — `.tool-versions` 파일 하나에 언어 런타임 버전과 오픈소스 브랜치/태그 종속성을 함께 선언
+- 🌍 **글로벌 SSOT + 프로젝트별 로컬 오버라이드** — 전역 기본값(`dev-tools/dev-toolchain/.tool-versions`)과 프로젝트별 로컬(`.tool-versions`) 2계층 관리
 - 🔙 **깔끔한 제거** — 설치한 건 전부 되돌릴 수 있음 (`.bak` 백업까지 남김)
 - 🖥️ **POSIX sh 호환** — macOS 기본 셸(`/bin/sh`)에서도 그대로 동작, bash 특수문법 없음
 
 <br>
 
+## 💻 CLI 명령어 사용법 (`dev-toolchain`)
+
+`~/githubs/bin/dev-toolchain` 심볼릭 링크를 통해 어디서든 바로 실행할 수 있습니다.
+
+### 1. 오픈소스(`@oss`) & 언어(`.tool-versions`) 조회·동기화
+```zsh
+# 글로벌 SSOT(언어 8종 + 오픈소스 48종) 및 모든 프로젝트의 로컬 .tool-versions 현황 출력
+dev-toolchain status
+
+# 현재 작업 디렉토리($PWD)에 적용된 로컬 .tool-versions 규칙 확인
+dev-toolchain current
+
+# 특정 프로젝트(이름 부분 일치)의 로컬 언어·오픈소스 종속성 조회
+dev-toolchain project handcrafted-cpp
+dev-toolchain project react-next
+
+# 글로벌 .tool-versions의 @oss 카탈로그 기준으로 ~/githubs/opensource/{in-use,to-study} 동기화
+dev-toolchain sync
+
+# 전체 명령어 및 옵션 도움말 출력
+dev-toolchain --help
+```
+
+### 2. 언어 런타임(`asdf`) 부트스트랩 & 설치/제거
+```zsh
+# 대화형 언어·버전 선택 설치기 실행
+dev-toolchain
+
+# 선택 화면 없이 기본 언어·버전 전체 자동 설치
+dev-toolchain --all --yes
+
+# 실제 변경 없이 실행 계획만 미리보기 (Dry-run)
+dev-toolchain --dry-run --all --yes
+
+# 전역(~/.tool-versions) 대신 특정 프로젝트 폴더에만 버전 고정
+dev-toolchain --local=/path/to/project
+
+# dev-toolchain이 설치한 런타임·플러그인·셸 설정 제거
+dev-toolchain-uninstall
+dev-toolchain-uninstall --dry-run --yes
+```
+
+<br>
+
+## 🔗 글로벌 / 로컬 `.tool-versions` 통합 명세 규격
+
+`asdf`는 `#`으로 시작하는 줄을 주석으로 무시하므로, 표준 `.tool-versions` 파일 안에 **`# @oss`** 지시자를 함께 적어 언어와 오픈소스 종속성을 단일 파일로 관리합니다.
+
+### 1계층: 글로벌 SSOT (`~/githubs/dev-tools/dev-toolchain/.tool-versions` == `~/.tool-versions`)
+```text
+# [1] Global Language Runtimes (asdf)
+nodejs lts
+pnpm 10.33.0
+java temurin-25.0.2+10.0.LTS
+gradle 9.4.1
+python 3.12.13
+uv 0.12.9
+rust 1.94.0
+golang 1.26.1
+
+# [2] Global Coupled Open-Source Tooling (# @oss <소속언어> <저장소> <기본태그/브랜치> <원본URL>)
+# @oss core    Backlog.md   v1.55.3     https://github.com/MrLesk/Backlog.md.git
+# @oss core    fzf          v0.74.5     https://github.com/junegunn/fzf.git
+# @oss core    yq           v4.54.1     https://github.com/mikefarah/yq.git
+# @oss sh      shellspec    0.29.0-dev  https://github.com/shellspec/shellspec.git
+# @oss python  ruff         0.16.5      https://github.com/astral-sh/ruff.git
+# @oss cpp     googletest   v1.15.2     https://github.com/google/googletest.git
+# @oss infra   terraform    v1.16.0     https://github.com/hashicorp/terraform.git
+```
+
+### 2계층: 프로젝트별 로컬 오버라이드 (`<project>/.tool-versions`)
+```text
+# 예: freeride/doctree/.tool-versions
+python 3.12.13
+uv 0.12.9
+# @oss python  ruff             0.16.5
+# @oss python  vulture          v2.16
+# @oss core    Backlog.md       v1.55.3
+```
+
+### 3. 오픈소스 버전 컨테이너 + Git Bundle 아키텍처 (`opensource/in-use/<이름>/`)
+다른 프로젝트가 오픈소스를 심볼릭 링크로 참조할 때 `git checkout` 충돌 없이 특정 버전을 불변(immutable)으로 고정하기 위해, 모든 오픈소스는 아래 컨테이너 구조로 관리됩니다:
+
+```text
+opensource/in-use/<오픈소스명>/
+├── upstream/               # 원본 upstream git clone (fetch/업데이트 모체)
+├── bundles/
+│   └── <버전태그>.bundle   # git bundle create로 영구 박제한 단일 아카이브 파일
+├── <버전태그>/             # git worktree로 풀려 있는 실제 버전 폴더 (심볼릭 링크 타겟)
+└── current -> <버전태그>   # 전역 기본 버전 심볼릭 링크
+```
+
+- `dev-toolchain sync`를 실행하면:
+  1. 글로벌 및 로컬 `.tool-versions`에 선언된 모든 `<버전태그>`에 대해 `bundles/<버전태그>.bundle`과 `<버전태그>/` 디렉터리를 생성합니다.
+  2. 각 프로젝트 폴더 안에 `.opensource/<오픈소스명> -> ~/githubs/opensource/in-use/<오픈소스명>/<버전태그>` 심볼릭 링크를 자동 연결합니다.
+
+<br>
+
 ## 목차
 
+- [CLI 명령어 사용법 (`dev-toolchain`)](#-cli-명령어-사용법-dev-toolchain)
+- [글로벌 / 로컬 `.tool-versions` 통합 명세 규격](#-글로벌--로컬-tool-versions-통합-명세-규격)
 - [빠른 시작](#-빠른-시작)
 - [사전 요구사항](#-사전-요구사항)
 - [설치/제거되는 것](#-설치제거되는-것)
@@ -56,13 +156,13 @@ curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
 
 ```zsh
 curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/coralstay/langtoolchain/main/install.sh | sh
+  https://raw.githubusercontent.com/coralstay/dev-toolchain/main/install.sh | sh
 ```
 
 로컬에 이미 클론해뒀다면:
 
 ```zsh
-git clone https://github.com/coralstay/langtoolchain.git && cd langtoolchain
+git clone https://github.com/coralstay/dev-toolchain.git && cd dev-toolchain
 ./install.sh
 ```
 
@@ -162,7 +262,7 @@ Python 컴파일에 필요한 Homebrew 패키지(`openssl`, `readline`, `sqlite3
 
 ```zsh
 curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
-  https://raw.githubusercontent.com/coralstay/langtoolchain/main/uninstall.sh | sh
+  https://raw.githubusercontent.com/coralstay/dev-toolchain/main/uninstall.sh | sh
 ```
 
 실행 전 한 번 확인을 물으며(`--yes`로 생략 가능), `--dry-run`도 동일하게 지원합니다. 설치/제거
@@ -182,7 +282,9 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 
 | 경로                                     | 역할                                                                                                           |
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `install.sh` / `uninstall.sh`            | curl-pipe 진입점. 로컬 clone이 있으면 그대로 실행, 없으면 고정 커밋을 self-clone 후 실행                       |
+| `install.sh` / `uninstall.sh`            | CLI(`dev-toolchain`, `dev-toolchain-uninstall`) 및 curl-pipe 진입점                                            |
+| `.tool-versions`                         | 글로벌 언어 런타임(asdf) + 오픈소스 카탈로그(`# @oss`) 단일 SSOT 명세                                          |
+| `scripts/oss_sync.sh`                    | 글로벌/로컬 `.tool-versions` 파싱 및 `opensource/{in-use,to-study}` 조회·동기화(`status`/`current`/`project`/`sync`) |
 | `scripts/install/`, `scripts/uninstall/` | 번호가 매겨진 phase 스크립트(00, 01, 02, ...) + 각각의 `main.sh`                                               |
 | `scripts/lib.sh`                         | 설치/제거 전체가 공유하는 함수 라이브러리 (버전 fetch/캐시, 락, 타임아웃 등)                                   |
 | `scripts/lint/`                          | shellcheck 외에 이 저장소 자체 lint 스크립트(하드코딩 경로 검사 등)                                            |

@@ -1,3 +1,16 @@
+# ==============================================================================
+# Global Language Runtime & Open-Source Tooling Dependency Specification (SSOT)
+# File: ~/githubs/dev-tools/dev-toolchain/.tool-versions (symlinked at ~/.tool-versions)
+#
+# Hierarchy:
+#   1. Global defaults are defined here (Languages + `# @oss` Open-Source tools).
+#   2. Project-specific overrides/pins are defined in each project's local
+#      `<project>/.tool-versions` file (Languages + `# @oss <lang> <name> <ref>`).
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# [1] Global Language Runtimes (asdf)
+# ------------------------------------------------------------------------------
 nodejs lts
 pnpm 10.33.0
 java temurin-25.0.2+10.0.LTS
@@ -6,3 +19,68 @@ python 3.12.13
 uv 0.12.9
 rust 1.94.0
 golang 1.26.1
+
+# ------------------------------------------------------------------------------
+# [2] Global Coupled Open-Source Tooling (opensource/in-use & to-study)
+# Format: # @oss <lang_or_domain> <repo_name> <default_ref> <upstream_url>
+# ------------------------------------------------------------------------------
+
+# --- core / shell / terminal / editor ---
+# @oss core    asdf                     v0.20.0      https://github.com/asdf-vm/asdf.git
+# @oss core    Backlog.md               v1.55.3      https://github.com/MrLesk/Backlog.md.git
+# @oss core    fzf                      v0.74.5      https://github.com/junegunn/fzf.git
+# @oss core    ohmyzsh                  master       https://github.com/ohmyzsh/ohmyzsh.git
+# @oss core    zsh-autosuggestions      v0.7.1       https://github.com/zsh-users/zsh-autosuggestions.git
+# @oss core    zsh-syntax-highlighting  0.8.0        https://github.com/zsh-users/zsh-syntax-highlighting.git
+# @oss core    neovim                   v0.12.5      https://github.com/neovim/neovim.git
+# @oss core    vim                      v9.2.1000    https://github.com/vim/vim.git
+# @oss core    ideavim                  2.21.0       https://github.com/JetBrains/ideavim.git
+# @oss core    tmux                     3.7c         https://github.com/tmux/tmux.git
+# @oss core    tmuxinator               v3.4.1       https://github.com/tmuxinator/tmuxinator.git
+# @oss core    ripgrep                  15.2.0       https://github.com/BurntSushi/ripgrep.git
+# @oss core    bat                      v0.26.1      https://github.com/sharkdp/bat.git
+# @oss core    gh                       v2.102.0     https://github.com/cli/cli.git
+# @oss core    btop                     v1.4.7       https://github.com/aristocratos/btop.git
+# @oss core    tig                      tig-2.6.1    https://github.com/jonas/tig.git
+# @oss core    tlrc                     v1.13.1      https://github.com/tldr-pages/tlrc.git
+# @oss core    tokei                    v14.0.0      https://github.com/XAMPPRocky/tokei.git
+# @oss core    jq                       jq-1.7.1     https://github.com/jqlang/jq.git
+# @oss core    yq                       v4.54.1      https://github.com/mikefarah/yq.git
+
+# --- sh (POSIX sh / Bash / GitHub Actions) ---
+# @oss sh      shellspec                0.29.0-dev   https://github.com/shellspec/shellspec.git
+# @oss sh      bats-core                v1.14.0      https://github.com/bats-core/bats-core.git
+# @oss sh      shellcheck               v0.11.0      https://github.com/koalaman/shellcheck.git
+# @oss sh      shfmt                    v3.14.0      https://github.com/mvdan/sh.git
+# @oss sh      actionlint               v1.7.12      https://github.com/rhysd/actionlint.git
+# @oss sh      hyperfine                v1.20.0      https://github.com/sharkdp/hyperfine.git
+
+# --- python (Python 3.12 + uv) ---
+# @oss python  ruff                     0.16.5       https://github.com/astral-sh/ruff.git
+# @oss python  vulture                  v2.16        https://github.com/jendrikseipp/vulture.git
+# @oss python  sqlfluff                 4.3.0        https://github.com/sqlfluff/sqlfluff.git
+
+# --- cpp (C/C++17 · CMake · eBPF · Linux Kernel Tracing) ---
+# @oss cpp     googletest               v1.15.2      https://github.com/google/googletest.git
+# @oss cpp     libbpf                   v1.8.0       https://github.com/libbpf/libbpf.git
+# @oss cpp     bpftool                  v7.8.1       https://github.com/libbpf/bpftool.git
+# @oss cpp     bcc                      v0.34.0      https://github.com/iovisor/bcc.git
+
+# --- infra (Terraform · Kubernetes · Container · DevSecOps · Loadtest) ---
+# @oss infra   terraform                v1.16.0      https://github.com/hashicorp/terraform.git
+# @oss infra   tflint                   v0.64.0      https://github.com/terraform-linters/tflint.git
+# @oss infra   terraform-docs           v0.24.0      https://github.com/terraform-docs/terraform-docs.git
+# @oss infra   trivy                    v0.74.0      https://github.com/aquasecurity/trivy.git
+# @oss infra   checkov                  3.3.10       https://github.com/bridgecrewio/checkov.git
+# @oss infra   gitleaks                 v8.30.1      https://github.com/gitleaks/gitleaks.git
+# @oss infra   infracost                v0.10.47     https://github.com/infracost/infracost.git
+# @oss infra   conftest                 v0.69.0      https://github.com/open-policy-agent/conftest.git
+# @oss infra   kubeconform              v0.8.0       https://github.com/yannh/kubeconform.git
+# @oss infra   k3d                      v5.9.0       https://github.com/k3d-io/k3d.git
+# @oss infra   k6                       v2.2.0       https://github.com/grafana/k6.git
+# @oss infra   podman                   v6.1.4       https://github.com/containers/podman.git
+# @oss infra   docker-compose           v5.6.1       https://github.com/docker/compose.git
+
+# --- study (Reference Open-Source in opensource/to-study) ---
+# @oss study   Pro-Spring-7             main         https://github.com/Apress/Pro-Spring-7.git
+# @oss study   build-your-own-x         master       https://github.com/codecrafters-io/build-your-own-x.git
