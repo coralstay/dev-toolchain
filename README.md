@@ -4,7 +4,7 @@
 
 macOS 언어 런타임(`asdf`) 및 오픈소스 생태계 도구(`@oss`) 통합 버전 매니저
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](./LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white)](#-사전-요구사항)
 [![Shell](https://img.shields.io/badge/shell-POSIX%20sh-4EAA25)](#-기여하기)
 [![Powered by asdf](https://img.shields.io/badge/powered%20by-asdf-F16436)](https://asdf-vm.com)
@@ -369,7 +369,8 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 
 <div align="center">
 
-[MIT](https://opensource.org/licenses/MIT) — 누구나 자유롭게 가져다 쓰고 고칠 수 있습니다. (이 저장소의 [LICENSE](LICENSE) 파일도 동일한 내용입니다.)
+[GNU AGPL-3.0-only](./LICENSE) — 2026-10-31 MIT에서 변경했습니다(저작권자 단독). 변경 전 커밋까지의 사본은 계속 MIT입니다.<br>
+`docs/shell-style-guide.md`는 [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)를 바탕으로 한 2차 저작물로, 원문 라이선스인 CC BY 3.0을 따릅니다.
 
 Made with 🧉 by [coralstay](https://github.com/coralstay)
 
