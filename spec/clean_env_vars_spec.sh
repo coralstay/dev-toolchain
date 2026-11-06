@@ -1,3 +1,12 @@
+# ---
+# title: clean_env_vars_spec
+# description: 04가 쓴 모든 rc 줄을 03_clean_env_vars.sh가 지울 수 있는지 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/03_clean_env_vars.sh (TASK-64):
 # every line 04_configure_shell_env.sh writes must be removable by this

@@ -1,3 +1,12 @@
+# ---
+# title: bootstrap_asdf_spec
+# description: 01_bootstrap_asdf.sh의 Homebrew·asdf 설치 경로를 mock으로 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/01_bootstrap_asdf.sh.
 #

@@ -1,3 +1,12 @@
+# ---
+# title: validate_spec
+# description: 07_validate.sh의 shim 경로 점검과 버전 불일치 점검을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/07_validate.sh, covering the two
 # logic bugs fixed this session (TASK-53, TASK-57). No command mocking:

@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 01_bootstrap_asdf
+# description: Homebrew와 asdf가 없으면 검증된 방식으로 설치하는 설치 1단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Ensures Homebrew and asdf itself are present. Both of these steps were
 # missing entirely in the original version of this tool — a fresh Mac with
 # neither pre-installed would fail immediately with "brew: command not

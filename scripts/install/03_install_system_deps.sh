@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 03_install_system_deps
+# description: Python 확장 빌드에 필요한 Homebrew 시스템 패키지를 설치하는 설치 3단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # System-level Homebrew packages needed to compile Python's C extensions
 # (ssl, sqlite, zlib, ...). Installed unconditionally since they're small
 # and brew install is idempotent regardless of which languages were

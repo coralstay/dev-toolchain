@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: check-hardcoded-paths
+# description: 공용 헬퍼 대신 경로·환경변수를 하드코딩한 코드를 grep으로 찾아내는 린트 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # check-hardcoded-paths.sh (TASK-125.3, decision-7): grep-based detector for
 # the "hardcoded path/env-var instead of the shared lib.sh helper" regression
 # class documented in docs/hardcoded-paths-patterns.md (TASK-125.1),

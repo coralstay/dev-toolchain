@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 00_select
+# description: 설치할 언어와 버전을 대화형 또는 플래그로 고르고 선택 파일 경로를 출력하는 단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Interactive language/version picker.
 #
 # Prints nothing but a single file path to stdout on success (the resulting

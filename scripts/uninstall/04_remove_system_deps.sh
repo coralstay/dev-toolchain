@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 04_remove_system_deps
+# description: 설치 3단계에서 깐 Homebrew 빌드 의존 패키지를 제거하는 제거 4단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Removes the Homebrew build-dependency formulas (LT_BUILD_DEPS in lib.sh)
 # this tool installed for Python's C extensions — mirrors the install side's
 # 03_install_system_deps.sh.

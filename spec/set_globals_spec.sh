@@ -1,3 +1,12 @@
+# ---
+# title: set_globals_spec
+# description: 06_set_globals.sh의 로컬 스코프 핀 기록과 전역 기본 동작을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/06_set_globals.sh's LOCAL-scope pin
 # tracking (TASK-83): pinning locally must record the target directory in

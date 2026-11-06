@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 02_remove_plugins
+# description: 이 도구가 책임지는 asdf 플러그인만 골라 제거하고 기존 플러그인은 보존하는 제거 2단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Removes every installed asdf plugin that langtoolchain itself is
 # responsible for (not just this repo's own languages — see below), ahead
 # of asdf itself being purged in phase 5. A plugin that already existed on

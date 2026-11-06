@@ -1,3 +1,12 @@
+# ---
+# title: lib_spec
+# description: scripts/lib.sh의 순수 함수들을 단위 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Unit tests for scripts/lib.sh - the pure-function utilities every
 # install/uninstall phase script sources. No mocking needed here: these

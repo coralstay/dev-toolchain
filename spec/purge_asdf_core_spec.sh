@@ -1,3 +1,12 @@
+# ---
+# title: purge_asdf_core_spec
+# description: 05_purge_asdf_core.sh가 ASDF_DATA_DIR 재정의와 사전 상태 스냅샷을 지키는지 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/05_purge_asdf_core.sh:
 # - TASK-70: must respect a live ASDF_DATA_DIR override, same as

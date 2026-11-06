@@ -1,3 +1,12 @@
+---
+title: sed-portability-audit
+description: 저장소 내 sed 사용 지점의 BSD/GNU 이식성을 전수 감사한 기록
+authors: [coralstay]
+license: AGPL-3.0-only
+status: draft
+created_date: '2026-11-06'
+updated_date: '2026-11-06'
+---
 # sed 사용 지점 BSD/GNU 이식성 감사 (TASK-126)
 
 이 저장소는 macOS 전용 도구지만, `sed` 문법이 BSD sed(macOS 기본 `/bin/sed`)와

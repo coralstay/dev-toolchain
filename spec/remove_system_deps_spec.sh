@@ -1,3 +1,12 @@
+# ---
+# title: remove_system_deps_spec
+# description: 04_remove_system_deps.sh의 brew 제거·정리 동작을 mock으로 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/04_remove_system_deps.sh (also the
 # file at the center of TASK-78: missing ensure_brew_on_path caused brew

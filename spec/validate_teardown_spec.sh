@@ -1,3 +1,12 @@
+# ---
+# title: validate_teardown_spec
+# description: 06_validate_teardown.sh가 사용자 지정 ASDF_DATA_DIR을 기준으로 판정하는지 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/06_validate_teardown.sh (TASK-65),
 # the uninstall-side counterpart of the 07_validate.sh fix from TASK-57: the

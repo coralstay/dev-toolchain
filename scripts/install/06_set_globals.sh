@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 06_set_globals
+# description: 선택한 언어별 버전을 전역 또는 로컬로 고정하고 shim을 재생성하는 설치 6단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Binds each selected language to a version and regenerates shims.
 # Self-sufficient: ensures asdf is on PATH itself.
 #

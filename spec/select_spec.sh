@@ -1,3 +1,12 @@
+# ---
+# title: select_spec
+# description: 00_select.sh의 비대화형 경로(--all, --local)를 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Tests for scripts/install/00_select.sh's non-interactive paths (--all,
 # --local[=DIR]). The interactive /dev/tty prompt path isn't covered here -

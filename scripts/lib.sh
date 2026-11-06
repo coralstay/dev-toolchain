@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: lib
+# description: 설치·제거 단계 스크립트가 공통으로 source하는 부작용 없는 POSIX sh 유틸리티 함수 모음
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Shared utilities sourced by the phase scripts under scripts/install/ and
 # scripts/uninstall/. Pure functions only — sourcing this file has no side
 # effects, so any phase script can source it standalone, in any order,

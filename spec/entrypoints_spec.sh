@@ -1,3 +1,12 @@
+# ---
+# title: entrypoints_spec
+# description: install.sh와 uninstall.sh가 별개의 진입점으로 유지되는지 못박는 shellspec 회귀 가드
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression guard for TASK-105: install.sh and uninstall.sh are deliberately
 # separate, independently curl-able entry points (see readme.md's "코드

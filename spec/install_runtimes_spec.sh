@@ -1,3 +1,12 @@
+# ---
+# title: install_runtimes_spec
+# description: 05_install_runtimes.sh의 언어별 부분 실패 격리와 전체 실패 보고를 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/05_install_runtimes.sh's partial
 # failure isolation (TASK-89): one language failing to install must not

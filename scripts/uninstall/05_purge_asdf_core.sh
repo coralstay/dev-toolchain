@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 05_purge_asdf_core
+# description: 설치 전 상태 스냅샷을 확인해 asdf 본체와 데이터 디렉터리를 조건부로 삭제하는 제거 5단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Removes asdf itself and its data directory. Only ever touches the user's
 # *global* ~/.tool-versions — never this repo's own .tool-versions, which is
 # a tracked project file, not machine state.

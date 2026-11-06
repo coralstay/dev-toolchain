@@ -1,3 +1,12 @@
+# ---
+# title: configure_shell_env_spec
+# description: 04_configure_shell_env.sh의 PATH 순서 등 rc 파일 기록 결과를 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/04_configure_shell_env.sh:
 # - PATH ordering: the "eval $(brew shellenv)" line must stay ahead of the

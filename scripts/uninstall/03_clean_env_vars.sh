@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 03_clean_env_vars
+# description: 설치 4단계가 rc 파일에 쓴 줄을 모두 찾아 지우는 제거 3단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Strips every line this tool's install phase (04_configure_shell_env.sh)
 # may have added, from whichever rc files exist. Sweeps lib.sh's
 # LT_KNOWN_RC_FILES (TASK-66) — all rc files this tool ever knows how to

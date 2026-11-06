@@ -1,3 +1,12 @@
+# ---
+# title: remove_plugins_spec
+# description: 02_remove_plugins.sh의 플러그인 제거 범위와 기존 플러그인 보존을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/02_remove_plugins.sh - removes
 # EVERY installed asdf plugin this tool is responsible for (not just this

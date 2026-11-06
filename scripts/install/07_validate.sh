@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 07_validate
+# description: 설치 결과를 모든 항목에 대해 점검하고 실패를 모아 보고하는 설치 7단계 검증 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Post-install checks. Deliberately no `set -e` — a test runner should
 # evaluate every assertion and report all of them, not stop at the first
 # failure.

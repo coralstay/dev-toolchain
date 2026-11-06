@@ -1,3 +1,12 @@
+# ---
+# title: main_entrypoints_spec
+# description: install/uninstall main.sh의 플래그 검증 동작을 확인하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/main.sh and scripts/uninstall/
 # main.sh - previously untested (see git history: no main_spec.sh ever

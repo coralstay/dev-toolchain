@@ -1,3 +1,12 @@
+# ---
+# title: install_plugins_spec
+# description: 02_install_plugins.sh의 플러그인 설치 여부 정확 일치 판정을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression test for scripts/install/02_install_plugins.sh's exact-match
 # plugin-presence check (`grep -qx`) - guards against a plugin named e.g.

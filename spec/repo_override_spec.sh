@@ -1,3 +1,12 @@
+# ---
+# title: repo_override_spec
+# description: LANGTOOLCHAIN_REPO_URL·BRANCH 재정의와 고정 clone 동작을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for LANGTOOLCHAIN_REPO_URL/LANGTOOLCHAIN_BRANCH
 # (TASK-117.6) and, by extension, the pinned-fetch mechanism itself

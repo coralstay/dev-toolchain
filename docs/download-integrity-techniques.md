@@ -1,3 +1,12 @@
+---
+title: download-integrity-techniques
+description: 셸 설치 스크립트의 다운로드 무결성·진위 검증 기법을 조사해 적용 가능성을 평가한 문서
+authors: [coralstay]
+license: AGPL-3.0-only
+status: draft
+created_date: '2026-11-06'
+updated_date: '2026-11-06'
+---
 # 다운로드 무결성/진위 검증 기법 (TASK-116.1)
 
 m-11(다운로드/설치 체인 무결성 검증)을 위한 조사 산출물. 셸 기반 설치 스크립트가 원격에서

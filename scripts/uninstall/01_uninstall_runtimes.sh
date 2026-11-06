@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 01_uninstall_runtimes
+# description: .tool-versions와 로컬 핀 기록에 있는 asdf 런타임을 제거하는 제거 1단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Uninstalls each asdf-managed language runtime listed in .tool-versions.
 # Ensures asdf/shims are on PATH itself, same reasoning as every other
 # phase script — main.sh runs each phase as its own process.

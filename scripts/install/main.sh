@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: main
+# description: 설치 1~7단계를 각각 별도 프로세스로 순서대로 실행하는 설치 오케스트레이터
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Orchestrator: runs each install phase in its own process, in order.
 # Each phase is independently correct and independently runnable — this
 # script exists only for the convenience of running all of them at once.

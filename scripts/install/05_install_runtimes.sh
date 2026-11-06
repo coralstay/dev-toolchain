@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 05_install_runtimes
+# description: 선택한 언어 런타임을 asdf로 설치하고 일부 실패도 격리하는 설치 5단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # The slow part: compiles/installs each selected language runtime via asdf.
 # Ensures asdf/shims + build flags itself instead of trusting phase 04's rc
 # file edits to already be sourced into this process.

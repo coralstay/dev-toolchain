@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: main
+# description: 제거 1~6단계를 각각 별도 프로세스로 순서대로 실행하는 제거 오케스트레이터
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Orchestrator: runs each teardown phase in its own process, in order.
 #
 # Flags:

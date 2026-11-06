@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: uninstall
+# description: curl로 받아 실행하는 한 줄 제거 진입점으로, scripts/uninstall/main.sh에 위임하는 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # langtoolchain — one-line uninstaller
 #
 #   curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \

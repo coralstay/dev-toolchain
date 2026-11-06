@@ -1,3 +1,12 @@
+---
+title: architecture
+description: install/uninstall 흐름을 Mermaid 다이어그램으로 정리한 아키텍처 개요 문서
+authors: [coralstay]
+license: AGPL-3.0-only
+status: draft
+created_date: '2026-11-06'
+updated_date: '2026-11-06'
+---
 # 아키텍처 개요
 
 이 문서는 langtoolchain의 install/uninstall 흐름을 다이어그램으로 정리한 것입니다.

@@ -1,3 +1,12 @@
+# ---
+# title: uninstall_runtimes_spec
+# description: 01_uninstall_runtimes.sh가 로컬 핀 기록을 읽어 런타임을 제거하는지 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/01_uninstall_runtimes.sh's
 # local-pins read side (TASK-83): a runtime version only ever pinned inside

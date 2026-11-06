@@ -1,3 +1,12 @@
+# ---
+# title: e2e-verify
+# description: 실제 macOS(arm64·Intel) 러너에서 설치·제거 스크립트를 끝까지 검증하는 GitHub Actions 워크플로
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 name: E2E verify (real macOS, arm64 + Intel)
 
 # End-to-end verification of the installer/uninstaller on real, clean,

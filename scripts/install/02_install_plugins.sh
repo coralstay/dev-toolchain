@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 02_install_plugins
+# description: 선택한 언어마다 asdf 플러그인을 추가하는 설치 2단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Adds the asdf plugin for each selected language. Ensures asdf/shims are on
 # PATH itself — does not rely on phase 01 having exported anything into
 # this process, since main.sh runs every phase as its own child process.

@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: install
+# description: curl로 받아 실행하는 한 줄 설치 진입점으로, 실제 설치기를 내려받아 scripts/install/main.sh에 넘기는 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # langtoolchain — one-line installer
 #
 #   curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \

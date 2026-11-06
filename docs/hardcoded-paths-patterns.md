@@ -1,3 +1,12 @@
+---
+title: hardcoded-paths-patterns
+description: 경로·환경변수 하드코딩 회귀 버그 5건에서 뽑은 자동 감지 대상 패턴 정리
+authors: [coralstay]
+license: AGPL-3.0-only
+status: draft
+created_date: '2026-11-06'
+updated_date: '2026-11-06'
+---
 # 경로/환경변수 하드코딩 회귀 패턴 (TASK-125.1)
 
 이 문서는 이 저장소에서 실제로 발생했던 "경로/환경변수 하드코딩" 클래스의

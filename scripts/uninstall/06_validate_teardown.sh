@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 06_validate_teardown
+# description: 제거 후 잔재가 남지 않았는지 항목별로 점검하는 제거 6단계 검증 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # No `set -e` — a test runner should evaluate every assertion, not stop at
 # the first failure.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

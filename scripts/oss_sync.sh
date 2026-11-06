@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: oss_sync
+# description: 전역·로컬 .tool-versions와 오픈소스 컨테이너 레이아웃을 동기화하는 관리 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # ==============================================================================
 # dev-toolchain (oss_sync.sh): Global + Local (.tool-versions) Manager
 #

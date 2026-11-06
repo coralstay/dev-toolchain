@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 04_configure_shell_env
+# description: asdf 셸 통합과 빌드 플래그 환경변수를 사용자 rc 파일에 기록하는 설치 4단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Writes asdf + build-flag shell config into the user's rc file.
 #
 # Modern Homebrew asdf (v0.16+, the Go rewrite — what `brew install asdf`
