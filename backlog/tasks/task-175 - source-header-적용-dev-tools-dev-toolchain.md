@@ -4,7 +4,7 @@ title: 'source-header 적용: dev-tools/dev-toolchain'
 status: In Progress
 assignee: []
 created_date: '2026-10-31T11:08:00Z'
-updated_date: '2026-11-06T12:12:00Z'
+updated_date: '2026-11-06T13:32:00Z'
 labels:
   - source-header
   - rollout
@@ -41,7 +41,7 @@ MIT(저작권자 옛 이름) → AGPL-3.0-only로 전환: LICENSE 교체, README
 - [ ] #1 .mailmap(전역 ~/.mailmap과 같은 매핑)을 저장소에 커밋해 다른 클론·CI에서도 authors가 coralstay로 나온다
 - [x] #2 라이선스 조치를 마친다: MIT(저작권자 옛 이름) → AGPL-3.0-only로 전환: LICENSE 교체, README 라이선스 표기 수정
 - [ ] #3 .source-header.json을 확정하고(제외 대상 재확인) source-header init으로 헤더를 넣고, 서브에이전트가 description 초안을 쓴다. source-header lint 오류 0
-- [ ] #4 규격(source-header README '본문 노트 표식', TASK-23)에 따라 중요한 지점(진입점·불변식·비자명한 결정·외부 연동)의 줄 끝에 '---- N' 표식을 달고 파일 맨 아래 노트 구역에 설명을 쓴다. 이미 있는 주석은 변환 규칙(B4)으로 새 포맷에 옮기고 정보를 버리지 않는다. 번호는 파일마다 1부터 연속, 표식:노트 1:1. 주석·헤더 외 코드 줄은 바뀌지 않는다
+- [ ] #4 규격(source-header README '본문 노트 표식', TASK-23)에 따라 중요한 지점(설치 진입점·버전 고정·다운로드 검증·파괴적 명령 가드 등)의 줄 끝에 '---- N' 표식을 달고 파일 맨 아래 노트 구역에 설명을 쓴다. 번호는 파일마다 1부터 연속, 표식:노트 1:1. 주석·헤더 외 코드 줄은 바뀌지 않는다. 기존 주석의 변환(B4)은 하지 않고 후속 카드로 분리한다(유저 결정 2026-11-06)
 <!-- AC:END -->
 
 ## Definition of Done
@@ -80,4 +80,6 @@ AC #2 (2026-10-31): LICENSE를 AGPL-3.0 전문으로 교체, README 배지·Lice
 2026-11-06 범위 추가(유저 결정): 헤더 적용 뒤 같은 카드에서 본문 노트 표식(AC #5)까지 한다. 계획 6단계 추가 — 표식 커밋: 디렉터리 단위 서브에이전트가 파일을 읽고 중요한 지점에만 줄 끝 '---- N'과 하단 노트를 달고 기존 주석은 B4로 변환한다(헤더 커밋과 분리). 대상 sh 40·yml 1. 셸 스크립트라 접두사와 노트 구역 모두 '#'.
 
 2026-11-06 유저 결정: AC '.githooks 설치(--plugins source-header)'는 후속 draft(source-header DRAFT-7, GF-149 이후)로 분리했다. 이 카드의 AC 번호가 이에 맞춰 당겨졌다(표식 AC 번호 -1).
+
+2026-11-06 AC #4 문구 조정(유저 결정): 기존 주석을 새 포맷으로 옮기는 B4 변환은 이번에 하지 않고 후속 카드로 뺀다. 이유: 파일 42개·전체 9,174줄 중 주석 줄 3,529줄이고 scripts/lib.sh(1,566줄)와 scripts/install/00_select.sh(507줄)에 몰려 있어 별도 작업이 맞다. 기존 주석은 하나도 지우지 않았다.
 <!-- SECTION:NOTES:END -->
