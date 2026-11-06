@@ -4,7 +4,7 @@ title: 'source-header 적용: dev-tools/dev-toolchain'
 status: In Progress
 assignee: []
 created_date: '2026-10-31T11:08:00Z'
-updated_date: '2026-10-31T12:45:00Z'
+updated_date: '2026-11-06T12:01:00Z'
 labels:
   - source-header
   - rollout
@@ -42,6 +42,7 @@ MIT(저작권자 옛 이름) → AGPL-3.0-only로 전환: LICENSE 교체, README
 - [x] #2 라이선스 조치를 마친다: MIT(저작권자 옛 이름) → AGPL-3.0-only로 전환: LICENSE 교체, README 라이선스 표기 수정
 - [ ] #3 .source-header.json을 확정하고(제외 대상 재확인) source-header init으로 헤더를 넣고, 서브에이전트가 description 초안을 쓴다. source-header lint 오류 0
 - [ ] #4 git-commit-tool --plugins source-header로 .githooks를 설치하고(core.hooksPath=.githooks) 헤더 없는 파일 커밋이 막히는 것을 실측한다
+- [ ] #5 규격(source-header README '본문 노트 표식', TASK-23)에 따라 중요한 지점(진입점·불변식·비자명한 결정·외부 연동)의 줄 끝에 '---- N' 표식을 달고 파일 맨 아래 노트 구역에 설명을 쓴다. 이미 있는 주석은 변환 규칙(B4)으로 새 포맷에 옮기고 정보를 버리지 않는다. 번호는 파일마다 1부터 연속, 표식:노트 1:1. 주석·헤더 외 코드 줄은 바뀌지 않는다
 <!-- AC:END -->
 
 ## Definition of Done
@@ -49,6 +50,7 @@ MIT(저작권자 옛 이름) → AGPL-3.0-only로 전환: LICENSE 교체, README
 - [ ] #1 source-header lint . 오류 0 (출력을 Implementation Notes에 첨부)
 - [ ] #2 저장소의 기존 테스트·빌드가 헤더 추가 후에도 통과
 - [ ] #3 유저가 description diff를 검토
+- [ ] #4 표식 번호가 파일마다 1부터 연속이고 표식:노트가 1:1임을 확인한 출력과, git diff에 주석·헤더 외 변경이 없음을 확인한 결과를 Implementation Notes에 첨부했다
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -75,4 +77,6 @@ TASK-3 조사 결과는 Description 참고. source-header(init/lint/fix/hook)와
 
 <!-- SECTION:NOTES:BEGIN -->
 AC #2 (2026-10-31): LICENSE를 AGPL-3.0 전문으로 교체, README 배지·License 절 수정(이전 사본은 MIT 유지 안내). docs/shell-style-guide.md는 Google Shell Style Guide 기반 2차 저작물이라 CC BY 3.0 표기를 README에 추가. 작성자 coralstay(old-me@example.com)는 유저 본인으로 확인됨.
+
+2026-11-06 범위 추가(유저 결정): 헤더 적용 뒤 같은 카드에서 본문 노트 표식(AC #5)까지 한다. 계획 6단계 추가 — 표식 커밋: 디렉터리 단위 서브에이전트가 파일을 읽고 중요한 지점에만 줄 끝 '---- N'과 하단 노트를 달고 기존 주석은 B4로 변환한다(헤더 커밋과 분리). 대상 sh 40·yml 1. 셸 스크립트라 접두사와 노트 구역 모두 '#'.
 <!-- SECTION:NOTES:END -->
