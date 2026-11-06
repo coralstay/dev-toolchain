@@ -92,3 +92,9 @@ AC #2 (2026-10-31): LICENSE를 AGPL-3.0 전문으로 교체, README 배지·Lice
 - DoD #3: 유저가 description 286개(8개 저장소) 중 무작위 20개를 샘플 검토하고 '그래도 모두 남겨'라고 결정했다.
 - AC '.githooks 설치'는 유저 결정으로 후속 draft(source-header DRAFT-7, GF-149 이후)로 분리했다.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+dev-toolchain 셸 스크립트 40개와 e2e-verify.yml에 source-header 헤더(AGPL-3.0-only, 한 줄 description 47개)와 본문 노트 표식(셸 170, yml 8)을 적용했다. 설계 문서 md 6개에도 헤더를 넣었고 CC BY 파생인 shell-style-guide.md는 제외했다. 검증: lint --strict 0 오류, bash -n 40개 통과, shfmt -mn 구조 차이 0, shellspec 228 examples 0 failures. 기존 주석 변환(B4)은 유저 결정으로 후속 카드로 분리했고 기존 주석은 지우지 않았다. .githooks 설치도 후속 draft로 분리. 커밋 7745505 ffc1350 cdc4487 (브랜치 task/TASK-175).
+<!-- SECTION:FINAL_SUMMARY:END -->
