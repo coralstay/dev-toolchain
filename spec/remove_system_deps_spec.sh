@@ -67,7 +67,7 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
     The output should not include 'UNEXPECTED'
   End
 
-  It 'treats "required by another package" as informational, not fatal'
+  It 'treats "required by another package" as informational, not fatal'  # ---- 1
     Mock brew
       case "$1 $2" in
         "list openssl@3") exit 0 ;;
@@ -84,3 +84,8 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
     The output should include 'Skipped openssl@3'
   End
 End
+
+# ======== 노트 ========
+# 1 의존 거부는 치명적이지 않음
+#   설명: 다른 포뮬러가 의존해 brew가 제거를 거부해도 phase가 계속되어야 한다.
+#   관련: scripts/uninstall/04_remove_system_deps.sh

@@ -65,7 +65,7 @@ scripts/lib.sh:*)     echo "/usr/local"
 
 violations=0
 
-is_allowlisted() {
+is_allowlisted() {  # ---- 1
   # $1 = file, $2 = line content, $3 = allowlist (newline-separated
   # "path:substring" entries)
   local file line list old_ifs entry entry_file entry_substr
@@ -105,7 +105,7 @@ check() {
       [ -z "${lineno:-}" ] && continue
       trimmed="${content#"${content%%[! ]*}"}"
       case "$trimmed" in
-        \#*) continue ;;  # comment-only line
+        \#*) continue ;;  # comment-only line  # ---- 2
       esac
       if is_allowlisted "$file" "$content" "$allowlist"; then
         continue
@@ -118,7 +118,7 @@ EOF
   done
 }
 
-if [ "$#" -eq 0 ]; then
+if [ "$#" -eq 0 ]; then  # ---- 3
   set -- install.sh uninstall.sh scripts/lib.sh
   for f in scripts/install/*.sh scripts/uninstall/*.sh; do
     [ -f "$f" ] && set -- "$@" "$f"
@@ -130,7 +130,7 @@ fi
 check '하드코딩된 .asdf 리터럴 — $ASDF_DATA_DIR/lt_asdf_data_dir()/'\
 '$LT_ASDF_DATA_DIR_DEFAULT를 대신 사용하세요 (TASK-57/65 재발 패턴)' \
   '(^|[^A-Za-z0-9_/.])\.asdf(/|["'"'"']|$)' \
-  "$ASDF_LITERAL_ALLOWLIST" "$@"
+  "$ASDF_LITERAL_ALLOWLIST" "$@"  # ---- 4
 
 check '하드코딩된 /opt/homebrew 또는 /usr/local — lt_homebrew_prefix()를 대신 사용하세요'\
 ' (TASK-61/148 재발 패턴, Apple Silicon·Intel Mac 중 한쪽에서 깨짐)' \
@@ -143,10 +143,23 @@ check '하드코딩된 $HOME/.asdf 또는 ~/.asdf — ASDF_DATA_DIR 헬퍼를 �
   '(\$HOME/\.asdf|~/\.asdf)' \
   '' "$@"
 
-if [ "$violations" -gt 0 ]; then
+if [ "$violations" -gt 0 ]; then  # ---- 5
   echo "" >&2
   echo "check-hardcoded-paths.sh: ${violations}건 위반 발견." >&2
   exit 1
 fi
 
 echo "check-hardcoded-paths.sh: OK — 하드코딩된 경로/환경변수 리터럴 없음."
+
+# ======== 노트 ========
+# 1 허용 목록 대조(예외는 파일:부분문자열 쌍)
+#   설명: 허용 목록은 파일:부분문자열 쌍이며, 정의가 있는 단 하나의 위치(lib.sh의 상수)만 리터럴을 허용한다. 같은 파일이고 줄에 부분문자열이 있을 때만 통과시킨다. 새 예외는 근거와 함께 추가한다. IFS를 바꿔 목록을 줄 단위로 훑고 반드시 복원한다.
+# 2 주석만 있는 줄은 검사 제외
+#   설명: 설명 주석에 경로 예시를 적어도 위반으로 잡지 않는다. 노트 구역과 표식 줄도 같은 규칙으로 통과한다.
+# 3 인자가 없으면 기본 대상 전체
+#   설명: install.sh, uninstall.sh, lib.sh와 phase 스크립트를 검사한다. CI와 로컬이 같은 대상을 본다.
+# 4 .asdf 리터럴을 찾는 정규식
+#   설명: 경로 구성요소로서의 .asdf만 잡도록 앞뒤 문자를 제한한다. 다른 이름의 일부는 걸리지 않는다.
+#   관련: docs/hardcoded-paths-patterns.md
+# 5 위반이 있으면 실패 종료
+#   설명: CI가 이 종료 코드로 회귀를 막는다.

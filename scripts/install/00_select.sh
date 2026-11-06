@@ -144,7 +144,7 @@ write_with_scope() {
 # `set -e`/`||` entirely; `true` is an ordinary command, so its redirection
 # failure is just a normal non-zero status the `||` can catch.
 INTERACTIVE=true
-{ true < /dev/tty; } 2>/dev/null || INTERACTIVE=false
+{ true < /dev/tty; } 2>/dev/null || INTERACTIVE=false  # ---- 1
 
 # tty_out/tty_prompt: write straight to the terminal device, bypassing this
 # script's own stdout. That keeps stdout free to carry only the final
@@ -161,7 +161,7 @@ INTERACTIVE=true
 # Returns:
 #   None
 #######################################
-tty_out() { printf '%s\n' "$*" > /dev/tty; }
+tty_out() { printf '%s\n' "$*" > /dev/tty; }  # ---- 2
 #######################################
 # Print a prompt straight to the controlling terminal, no trailing newline.
 # Globals:
@@ -213,7 +213,7 @@ _LT_RAW_STTY_FILE="${TMPDIR:-/tmp}/langtoolchain-raw-stty.$$"
 #   Always 0 (see prose above — this runs from the EXIT trap and must never
 #   override the script's actual exit status).
 #######################################
-lt_restore_raw_stty() {
+lt_restore_raw_stty() {  # ---- 3
   # Always exits 0 - this runs from the EXIT trap, where a failing command
   # would otherwise override the script's actual exit status (the whole
   # point of `$SUCCESS || rm -f "$OUT_FILE"` right after it is to preserve
@@ -409,7 +409,7 @@ lt_arrow_menu() {
   # only lives in this command-substitution subshell (see _LT_RAW_STTY_FILE's
   # own comment), so the parent's EXIT trap needs the file to recover it.
   printf '%s\n' "$old_stty" > "$_LT_RAW_STTY_FILE"
-  stty -icanon -echo min 1 time 0 < /dev/tty
+  stty -icanon -echo min 1 time 0 < /dev/tty  # ---- 4
 
   while :; do
     action="$(lt_read_menu_key "$n")"
@@ -566,7 +566,7 @@ lt_version_walkthrough() {
   printf '%s\n' "$default"
 }
 
-ask_version() {
+ask_version() {  # ---- 5
   local plugin="$1" default="$2" list_tmp options_tmp opt chosen i
   list_tmp="$(mktemp)"
   if ! lt_resolve_version_list "$plugin" > "$list_tmp"; then
@@ -628,7 +628,7 @@ readonly OUT_FILE
 # language selections are already written to $OUT_FILE, which would look
 # "successful" to an emptiness check and leak the file. SUCCESS is only
 # ever set true right before the two real `echo "$OUT_FILE"` handoffs.
-SUCCESS=false
+SUCCESS=false  # ---- 6
 # The version-list circuit breaker marker (m-15/TASK-129.2, decision-17,
 # see LT_VERSION_LIST_UNREACHABLE_FILE's own comment in lib.sh) is cleaned
 # up unconditionally, unlike $OUT_FILE - it's scoped to this one process
@@ -637,13 +637,13 @@ SUCCESS=false
 # was never called at all (--all/non-interactive) or never hit a fetch
 # failure.
 trap 'lt_restore_raw_stty; $SUCCESS || rm -f "$OUT_FILE"; \
-  rm -f "$LT_VERSION_LIST_UNREACHABLE_FILE"' EXIT
+  rm -f "$LT_VERSION_LIST_UNREACHABLE_FILE"' EXIT  # ---- 7
 
 # Non-interactive session, or the caller explicitly asked for everything:
 # skip the language menu entirely and use the default config as-is. Scope
 # still comes from --local if given; otherwise there's no tty to ask, so
 # it defaults to global (scope_line() already does this when SCOPE="").
-if ! $INTERACTIVE || $SELECT_ALL; then
+if ! $INTERACTIVE || $SELECT_ALL; then  # ---- 8
   # Only announce this when it's the SILENT fallback (no tty, no --all) -
   # a caller who explicitly passed --all already knows what they asked for.
   # Without this, a CI run with no flags at all installs every language with
@@ -730,7 +730,7 @@ done
 # Returns:
 #   None
 #######################################
-lt_forget_language_lines() {
+lt_forget_language_lines() {  # ---- 9
   local plugin="$1" forget forget_tmp p v keep sp
   forget="$plugin $(lt_companion_for_plugin "$plugin")"
   forget_tmp="$(mktemp)"
@@ -837,7 +837,7 @@ lt_offer_language() {
 # Returns:
 #   None
 #######################################
-lt_run_language_loop() {
+lt_run_language_loop() {  # ---- 10
   local total i plugin default_version allow_back prev_plugin
   set --
   while read -r plugin default_version; do
@@ -896,7 +896,7 @@ done < "$OUT_FILE"
 tty_out ""
 
 # Ask where to pin these versions, unless --local[=DIR] already decided it.
-if [ -z "$SCOPE" ]; then
+if [ -z "$SCOPE" ]; then  # ---- 11
   if [ "$(lt_arrow_menu "Pin these versions:" 1 "Globally" \
     "Only in this directory")" = "2" ]; then
     tty_prompt "  Which directory? [default: current directory] > "
@@ -926,3 +926,35 @@ mv "$SCOPE_TMP" "$OUT_FILE"
 # final selection from.
 SUCCESS=true
 echo "$OUT_FILE"
+
+# ======== 노트 ========
+# 1 제어 터미널 탐지
+#   설명: /dev/tty를 열 수 있는지 시험한다. :(특수 내장)가 아니라 true를 쓰는 이유는, 특수 내장의 리다이렉션 오류가 비대화형 셸을 set -e나 ||와 무관하게 죽이기 때문이다. 터미널이 없으면 비대화형 경로로 간다.
+# 2 대화 출력은 stdout이 아니라 /dev/tty로
+#   설명: 이 스크립트의 stdout에는 최종 선택 파일 경로 한 줄만 나와야 한다. 메뉴·프롬프트를 tty로 보내야 호출자가 $(...)로 안전하게 받는다.
+#   관련: scripts/install/main.sh (SELECTION_FILE)
+# 3 raw 모드 복원
+#   설명: 방향키 메뉴가 터미널을 raw로 바꾼 채 종료되면 사용자 쉘이 망가진다. EXIT trap이 이 함수를 불러 항상 원래 설정으로 되돌린다.
+# 4 방향키 메뉴용 raw 모드 진입
+#   설명: 한 글자씩 키를 읽기 위해 canonical·echo를 끈다. 진입 전에 stty -g로 원래 상태를 저장해 두며, 어떤 종료 경로에서도 복원돼야 한다.
+#   관련: lt_arrow_menu, lt_restore_raw_stty
+#   개념: raw 모드
+# 5 버전 선택: 목록 메뉴 또는 후보 순회
+#   설명: raw 모드가 가능하면 방향키 메뉴를, 아니면 숫자·버전 문자열을 타이핑하지 않는 후보 순회(walkthrough)로 내려간다. 첫 항목은 (default) 장식이 붙어 있어 실제 값으로 되돌려 출력한다.
+#   관련: TASK-168, decision-17, decision-22
+# 6 성공 경로에서만 선택 파일을 남긴다
+#   설명: 선택 파일이 비어 있는지가 아니라 이 플래그로 성공을 판정한다. 범위 입력 오류 등 언어 선택 후 die되는 경로에서 파일이 새는 것을 막는다.
+# 7 EXIT trap: 선택 파일과 서킷브레이커 마커 정리
+#   설명: $$ 이름의 버전 목록 접속 불가 마커는 성공 여부와 무관하게 항상 지운다. trap 본문이 여러 줄이라 이 줄이 trap의 끝이다.
+#   관련: decision-17, TASK-129.2, LT_VERSION_LIST_UNREACHABLE_FILE (scripts/lib.sh)
+# 8 비대화형 또는 --all이면 메뉴 없이 기본 설정 사용
+#   설명: 터미널이 없으면 .tool-versions의 모든 언어를 그대로 설치하며, 플래그 없이 그렇게 된 경우만 stderr로 알린다. stdout은 파일 경로 핸드오프 전용이다.
+#   관련: TASK-95.1
+# 9 뒤로가기: 이전 언어 선택 지우기
+#   설명: 선택 파일에서 해당 언어와 그 동반 도구 줄을 걸러 낸다. 뒤로가기는 언어 단위로만 지원한다.
+#   관련: decision-21
+# 10 언어별 질의 루프(뒤로가기 포함)
+#   설명: 동반 도구는 주 언어 질의에 포함시키고 목록에서는 건너뛴다. 거절 코드가 돌아오면 인덱스를 하나 줄여 이전 언어를 다시 묻는다.
+#   관련: decision-21
+# 11 스코프를 아직 모르면 대화형으로 묻는다
+#   설명: --local 플래그로 이미 정했다면 건너뛴다. 로컬이면 디렉터리를 확인하며, 존재하지 않는 경로는 die한다.

@@ -20,7 +20,7 @@
 #   asdf_preexisting snapshot key the exact same way — confirmed by real UAT
 #   that an earlier version deleted a pre-existing Homebrew-installed asdf
 #   for real, even though the data dir/plugins were correctly kept.
-Describe 'scripts/uninstall/05_purge_asdf_core.sh'
+Describe 'scripts/uninstall/05_purge_asdf_core.sh'  # ---- 1
   SCRIPT='./scripts/uninstall/05_purge_asdf_core.sh'
 
   # `brew` is always Mocked below, never left to resolve for real - this dev
@@ -84,7 +84,7 @@ Describe 'scripts/uninstall/05_purge_asdf_core.sh'
     rm -rf "$(dirname "$custom_dir")"
   End
 
-  It 'does DRY_RUN without deleting anything'
+  It 'does DRY_RUN without deleting anything'  # ---- 2
     mkdir -p "$fake_home/.asdf/shims"
     printf 'asdf_preexisting=false\nasdf_data_dir_preexisting=false\n' \
       > "$LT_PRIOR_STATE_FILE"
@@ -179,7 +179,7 @@ Describe 'scripts/uninstall/05_purge_asdf_core.sh'
   # and the only reader of LT_PRIOR_STATE_FILE, so once it finishes without
   # error the snapshot has done its job for this run and should be cleared
   # so the next install re-baselines from the machine's actual state.
-  It 'removes LT_PRIOR_STATE_FILE once the whole phase succeeds (decision-8)'
+  It 'removes LT_PRIOR_STATE_FILE once the whole phase succeeds (decision-8)'  # ---- 3
     mkdir -p "$fake_home/.asdf/shims"
     printf 'asdf_data_dir_preexisting=false\n' > "$LT_PRIOR_STATE_FILE"
     export HOME="$fake_home" DRY_RUN=false
@@ -200,3 +200,13 @@ Describe 'scripts/uninstall/05_purge_asdf_core.sh'
     The path "$LT_PRIOR_STATE_FILE" should be exist
   End
 End
+
+# ======== 노트 ========
+# 1 가장 파괴적인 phase의 안전장치 시험
+#   설명: 스냅샷이 "원래 없었다"고 할 때만 삭제하고, 모호하면 건너뛰는지를 여러 경우로 시험한다.
+#   관련: decision-6, TASK-124
+# 2 dry-run은 삭제하지 않는다
+#   설명: 미리보기 모드가 실제 상태를 건드리지 않는지 확인한다.
+# 3 성공 시에만 스냅샷 삭제
+#   설명: 전체 phase가 성공해야 스냅샷을 비워 다음 설치가 재기준선을 잡는다.
+#   관련: decision-8, TASK-139

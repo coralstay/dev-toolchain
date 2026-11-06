@@ -39,7 +39,7 @@ DRY_RUN="${DRY_RUN:-false}"
 # Single source of truth for scripts/install/03_install_system_deps.sh,
 # scripts/uninstall/04_remove_system_deps.sh, and ensure_build_flags() below
 # (which only needs the openssl/readline/sqlite3/zlib subset — see there).
-readonly LT_BUILD_DEPS="openssl@3 readline sqlite3 xz zlib tcl-tk"
+readonly LT_BUILD_DEPS="openssl@3 readline sqlite3 xz zlib tcl-tk"  # ---- 1
 
 # lt_homebrew_prefix (TASK-61): prints Homebrew's install prefix for the
 # CPU architecture this script is running on right now. Apple Silicon and
@@ -60,7 +60,7 @@ readonly LT_BUILD_DEPS="openssl@3 readline sqlite3 xz zlib tcl-tk"
 # Returns:
 #   None
 #######################################
-lt_homebrew_prefix() {
+lt_homebrew_prefix() {  # ---- 2
   case "$(uname -m)" in
     arm64) echo "/opt/homebrew" ;;  # Apple Silicon
     *)     echo "/usr/local" ;;     # Intel
@@ -100,7 +100,7 @@ readonly LT_ASDF_DATA_DIR_DEFAULT="$HOME/$LT_ASDF_DATA_DIR_NAME"
 # Returns:
 #   None
 #######################################
-lt_asdf_data_dir() {
+lt_asdf_data_dir() {  # ---- 3
   echo "${ASDF_DATA_DIR:-$LT_ASDF_DATA_DIR_DEFAULT}"
 }
 
@@ -144,7 +144,7 @@ readonly LT_LOCAL_PINS_FILE_NAME="langtoolchain-local-pins"
 # `${LT_LOCK_DIR:-default}`, same override pattern as ASDF_DATA_DIR below:
 # lets a test (or an unusual caller) point this somewhere other than the
 # real shared path without that being a special case in acquire_lock itself.
-LT_LOCK_DIR="${LT_LOCK_DIR:-${TMPDIR:-/tmp}/langtoolchain.lock}"
+LT_LOCK_DIR="${LT_LOCK_DIR:-${TMPDIR:-/tmp}/langtoolchain.lock}"  # ---- 4
 
 # LT_REPORT_FILE (m-10/TASK-107): a human-readable audit trail of every
 # real change install/uninstall made - what got installed/removed/modified
@@ -153,7 +153,7 @@ LT_LOCK_DIR="${LT_LOCK_DIR:-${TMPDIR:-/tmp}/langtoolchain.lock}"
 # uninstall would otherwise erase the very history someone might want to
 # check right before/after running it. Override-able like LT_LOCK_DIR, so
 # tests can point it at a scratch file instead of a real $HOME.
-LT_REPORT_FILE="${LT_REPORT_FILE:-$HOME/.langtoolchain-report.log}"
+LT_REPORT_FILE="${LT_REPORT_FILE:-$HOME/.langtoolchain-report.log}"  # ---- 5
 
 # lt_report <action> <detail>: appends one line to LT_REPORT_FILE. Skipped
 # under DRY_RUN by design - a preview run didn't actually change anything,
@@ -191,7 +191,7 @@ lt_report() {
 # $ASDF_DATA_DIR` during uninstall must never delete the very file
 # uninstall is about to consult to decide whether to run that rm -rf.
 LT_PRIOR_STATE_FILE="${LT_PRIOR_STATE_FILE:-$HOME/\
-.langtoolchain-prior-asdf-state}"
+.langtoolchain-prior-asdf-state}"  # ---- 6
 
 # lt_snapshot_prior_asdf_state: writes LT_PRIOR_STATE_FILE with whether asdf
 # (brew list asdf), its data directory (lt_asdf_data_dir), and any asdf
@@ -226,7 +226,7 @@ LT_PRIOR_STATE_FILE="${LT_PRIOR_STATE_FILE:-$HOME/\
 # Returns:
 #   None
 #######################################
-lt_snapshot_prior_asdf_state() {
+lt_snapshot_prior_asdf_state() {  # ---- 7
   [ "$DRY_RUN" = "true" ] && return
   [ -f "$LT_PRIOR_STATE_FILE" ] && return
 
@@ -327,7 +327,7 @@ lt_prior_state_get() {
 # Returns:
 #   None
 #######################################
-lt_env_var_defs() {
+lt_env_var_defs() {  # ---- 8
   local java_hook_file="${1:-}"
   local homebrew_prefix
   homebrew_prefix="$(lt_homebrew_prefix)"
@@ -409,7 +409,7 @@ die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 # Returns:
 #   Exit status of "$@" when not under DRY_RUN; 0 under DRY_RUN.
 #######################################
-run() {
+run() {  # ---- 9
   # Under --dry-run, print what *would* run (prefixed with "+", like `set -x`)
   # instead of running it.
   if [ "$DRY_RUN" = "true" ]; then
@@ -446,7 +446,7 @@ run() {
 # Returns:
 #   0 as soon as <cmd...> succeeds; 1 once <max_attempts> is exhausted.
 #######################################
-retry() {
+retry() {  # ---- 10
   local max_attempts="$1" delay="$2" attempt=1
   shift 2
   while true; do
@@ -522,7 +522,7 @@ retry() {
 #   124 if <cmd...> was killed for exceeding the timeout; otherwise
 #   <cmd...>'s own exit status.
 #######################################
-lt_run_with_timeout() {
+lt_run_with_timeout() {  # ---- 11
   local secs="$1"
   shift
   local cmd_pid watchdog_pid status timeout_marker stdout_file stderr_file
@@ -636,7 +636,7 @@ LT_CHILD_PID=""
 # Returns:
 #   The phase script's own exit status.
 #######################################
-run_phase() {
+run_phase() {  # ---- 12
   # Between backgrounding the child and capturing its PID there's a brief
   # window where handle_interrupt has nothing to kill yet: a signal landing
   # exactly there would see an empty LT_CHILD_PID, skip the kill, and still
@@ -739,7 +739,7 @@ lt_die_if_lock_held() {
 # Returns:
 #   Does not return on failure — exits (via die()) with status 1.
 #######################################
-acquire_lock() {
+acquire_lock() {  # ---- 13
   if ! mkdir "$LT_LOCK_DIR" 2>/dev/null; then
     lt_die_if_lock_held
     # Stale lock (holder died before its own release_lock trap could run):
@@ -968,7 +968,7 @@ read_scope() {
 # Returns:
 #   None
 #######################################
-ensure_asdf_on_path() {
+ensure_asdf_on_path() {  # ---- 14
   # Default to asdf's own default data directory if the caller's
   # environment hasn't already set ASDF_DATA_DIR.
   export ASDF_DATA_DIR="$(lt_asdf_data_dir)"
@@ -1004,7 +1004,7 @@ ensure_asdf_on_path() {
 # Returns:
 #   None
 #######################################
-ensure_brew_on_path() {
+ensure_brew_on_path() {  # ---- 15
   if command -v brew >/dev/null 2>&1; then
     return
   fi
@@ -1040,7 +1040,7 @@ ensure_brew_on_path() {
 # Returns:
 #   None
 #######################################
-ensure_build_flags() {
+ensure_build_flags() {  # ---- 16
   # `brew --prefix` below needs `brew` itself resolvable first.
   ensure_brew_on_path
   # Declared and assigned separately (not inline inside the export) so a
@@ -1325,7 +1325,7 @@ lt_json_field() {
 # Returns:
 #   None
 #######################################
-lt_upstream_latest_version() {
+lt_upstream_latest_version() {  # ---- 17
   # No up-front `command -v curl` guard here on purpose: every branch below
   # that needs curl (or git, for python) already chains `|| return 1` onto
   # its own call, which catches a missing binary (exit 127) exactly like
@@ -2159,7 +2159,7 @@ ${TMPDIR:-/tmp}/langtoolchain-version-list-unreachable.$$}"
 # Returns:
 #   0 on success (cache hit or live fetch); 1 if both missed.
 #######################################
-lt_resolve_version_list() {
+lt_resolve_version_list() {  # ---- 18
   local plugin="$1" cached fetched
   cached="$(lt_cached_version_list_lookup "$plugin" 2>/dev/null)" || cached=""
   if [ -n "$cached" ]; then
@@ -2327,3 +2327,61 @@ lt_render_version_table() {
     i=$((i + 1))
   done
 }
+
+# ======== 노트 ========
+# 1 빌드 의존 Homebrew 포뮬러의 단일 출처
+#   설명: Python C 확장 컴파일에 필요한 포뮬러 목록. 설치 3단계, 제거 4단계, ensure_build_flags()가 모두 이 값 하나를 읽으므로 양쪽이 어긋나지 않는다.
+#   관련: scripts/install/03_install_system_deps.sh, scripts/uninstall/04_remove_system_deps.sh
+#   개념: SSOT
+# 2 Homebrew 접두사는 CPU 아키텍처별로 한 곳에서 계산
+#   설명: Apple Silicon과 Intel의 Homebrew 경로가 다르다. 각 스크립트가 uname -m case를 다시 쓰다 sqlite PATH 줄이 Intel에서 낡았던 사고(TASK-61)를 막으려고 이 함수만 쓴다.
+#   관련: TASK-61
+# 3 실제 asdf 데이터 디렉터리 값만 출력
+#   설명: ASDF_DATA_DIR 재정의가 있으면 그것, 없으면 기본 ~/.asdf. PATH를 건드리지 않아 제거 검증처럼 값만 필요한 호출자가 쓴다. 경로를 ".asdf"로 하드코딩하면 린트가 잡는다.
+#   관련: TASK-65, TASK-70, scripts/lint/check-hardcoded-paths.sh
+# 4 mkdir 기반 배타 잠금 경로
+#   설명: macOS에 flock이 없고 디렉터리 생성은 원자적이라 mkdir를 잠금 기본형으로 쓴다. 테스트가 경로를 바꿀 수 있게 환경변수로 덮어쓸 수 있다.
+#   관련: acquire_lock, TASK-84
+#   개념: 원자성
+# 5 감사 로그는 $HOME 바로 아래
+#   설명: 제거 중 rm -rf $ASDF_DATA_DIR가 감사 기록까지 지우지 않도록 데이터 디렉터리 밖에 둔다.
+#   관련: TASK-107
+# 6 설치 전 상태 스냅샷 파일 위치
+#   설명: 제거가 삭제 여부를 판단할 때 읽는 파일이라 rm -rf $ASDF_DATA_DIR 대상 밖($HOME)에 둔다. 파싱 전용 key=value 형식.
+#   관련: decision-6, TASK-123, TASK-124
+# 7 스냅샷은 한 번만, 어떤 설치 단계보다 먼저
+#   설명: asdf·데이터 디렉터리·플러그인이 이 도구 이전부터 있었는지 기록한다. 이미 파일이 있으면 재실행이므로 덮어쓰지 않는다(덮어쓰면 "이 도구가 손대기 전" 기준선이 오염된다). 호출 순서는 호출자(install/main.sh)가 지킨다.
+#   관련: decision-6, TASK-124.1, scripts/install/main.sh
+# 8 rc 파일 줄 정의의 단일 출처
+#   설명: 설치(04)는 쓸 줄을, 제거(03)는 지울 패턴을 모두 여기서 읽는다. 두 곳이 따로 패턴을 들고 있다가 어긋난 TASK-56(BSD sed가 java-hook 줄을 못 지움)을 막는다. brew shellenv만 prepend다.
+#   관련: scripts/install/04_configure_shell_env.sh, scripts/uninstall/03_clean_env_vars.sh, TASK-56, TASK-64
+#   개념: SSOT
+# 9 변경 명령은 모두 run을 거친다(dry-run 게이트)
+#   설명: brew install, asdf install, rm -rf 등 시스템을 바꾸는 명령은 직접 부르지 않고 run으로 감싼다. DRY_RUN이면 출력만 한다. "$@"로 인자 경계를 보존한다.
+# 10 지수 백오프 재시도
+#   설명: 일시적 실패만 대상으로 하며 소진되면 실패를 그대로 돌려줘 호출자가 판단한다. run과 겹쳐 쓰면 dry-run에서 첫 호출에 끝난다.
+#   관련: TASK-88
+# 11 POSIX 프리미티브만으로 만든 벽시계 타임아웃
+#   설명: timeout/gtimeout은 Homebrew 이전에 없고 프로세스 그룹 kill은 dash에서 동작하지 않는다. 백그라운드 작업 + wait + 감시 서브셸 구조이며, 출력은 파일로 받아 고아 자식이 호출자의 $(...)를 붙잡지 못하게 한다.
+#   관련: decision-10, TASK-138.1, install.sh (같은 아이디어의 인라인 사본)
+# 12 phase를 백그라운드 + wait로 실행
+#   설명: 전경 명령은 끝날 때까지 trap을 지연시켜 Ctrl-C 중 잠금이 풀리지 않는다. wait는 trap 신호에 즉시 반환한다. 종료 상태를 그대로 돌려줘야 set -eu가 실패 phase를 멈춘다.
+#   관련: TASK-90, scripts/install/main.sh
+# 13 실행 중 잠금 획득과 stale 잠금 회수
+#   설명: mkdir 성공이 곧 획득이다. 이미 있으면 기록된 PID가 살아 있는지(kill -0) 보고, 죽었으면 회수한다. 호출자는 바로 뒤에 trap으로 release_lock을 걸어야 한다.
+#   관련: TASK-84, lt_die_if_lock_held
+# 14 phase 프로세스마다 asdf를 PATH에 보장
+#   설명: main.sh가 각 phase를 별도 프로세스로 실행하므로 앞 phase의 export는 이어지지 않는다. 콜론으로 감싼 case 비교로 이미 있는 경우를 건너뛴다.
+#   관련: scripts/install/main.sh
+# 15 방금 설치된 brew도 이 프로세스에서 호출 가능하게
+#   설명: Homebrew 설치기는 PATH를 고치지 않는다. 다른 프로세스에서 막 설치됐을 수 있어 아키텍처별 고정 경로로 직접 폴백한다.
+#   관련: TASK-78, scripts/install/04_configure_shell_env.sh
+# 16 LDFLAGS 등 빌드 플래그 생성
+#   설명: export 안에서 명령 치환을 하면 실패가 가려지므로 변수를 먼저 따로 대입해 set -e가 잡게 한다. brew --prefix는 한 번만 불러 Ruby 기동 비용을 줄인다.
+#   관련: LT_BUILD_DEPS
+# 17 기본 버전은 각 언어 공식 소스에서 직접 조회
+#   설명: asdf latest는 플러그인이 이미 추가돼 있어야 해서 phase 0에서 쓸 수 없다. 언어별 공식 배포 인덱스/API를 curl(--max-time)이나 git ls-remote로 부른다. 실패하면 호출자가 정적 값으로 폴백한다.
+#   관련: decision-4, decision-15, TASK-118
+# 18 버전 목록: 신선한 캐시, 아니면 실시간 조회
+#   설명: 정적 폴백이 없어 전부 실패하면 아무것도 출력하지 않고 1을 반환한다. 처리는 호출자(00_select.sh)가 단일 옵션 메뉴로 한다.
+#   관련: decision-17, TASK-129.1, scripts/install/00_select.sh

@@ -39,14 +39,14 @@ step "Phase 2: Installing asdf plugins"
 # LT_VERSION_FETCH_TIMEOUT (lib.sh, tuned for a few hundred bytes of
 # JSON) - a plugin's git clone is a much bigger call. Override-able like
 # LT_VERSION_FETCH_TIMEOUT, so not readonly.
-LT_PLUGIN_TIMEOUT="${LT_PLUGIN_TIMEOUT:-30}"
+LT_PLUGIN_TIMEOUT="${LT_PLUGIN_TIMEOUT:-30}"  # ---- 1
 
 # Refresh every already-installed plugin's own git checkout. retry
 # (TASK-88): worth a couple of attempts before giving up on a network blip.
 # `|| true`: a stale/unreachable plugin repo shouldn't abort the whole
 # install even after retries are exhausted.
 retry 3 5 run lt_run_with_timeout "$LT_PLUGIN_TIMEOUT" \
-  asdf plugin update --all || true
+  asdf plugin update --all || true  # ---- 2
 
 # Capture once, up front, instead of piping straight into `grep -q` inside
 # the loop: grep -q closes the pipe as soon as it matches, which can
@@ -70,10 +70,10 @@ FAILED=""
 EACH_TOOL_TMP="$(mktemp)"
 readonly EACH_TOOL_TMP
 each_tool "$CONFIG_FILE" > "$EACH_TOOL_TMP"
-while read -r plugin version <&3; do
+while read -r plugin version <&3; do  # ---- 3
   # -x: exact whole-line match, so "python" doesn't accidentally match a
   # plugin named e.g. "python-build".
-  if printf '%s\n' "$existing_plugins" | grep -qx "$plugin"; then
+  if printf '%s\n' "$existing_plugins" | grep -qx "$plugin"; then  # ---- 4
     log "Plugin already present: $plugin"
   else
     log "Adding plugin: $plugin"
@@ -82,10 +82,26 @@ while read -r plugin version <&3; do
       lt_report installed "asdf plugin: $plugin"
     else
       log "  FAILED: $plugin (continuing with remaining languages)"
-      FAILED="${FAILED}${FAILED:+ }$plugin"
+      FAILED="${FAILED}${FAILED:+ }$plugin"  # ---- 5
     fi
   fi
 done 3< "$EACH_TOOL_TMP"
 rm -f "$EACH_TOOL_TMP"
 
 [ -z "$FAILED" ] || die "Failed to add plugin(s): $FAILED"
+
+# ======== 노트 ========
+# 1 플러그인 git 호출 타임아웃
+#   설명: asdf plugin add/update는 내부에서 git clone/fetch를 하고 자체 시간 제한이 없다. 멈춘 저장소 하나가 전체를 막지 않도록 벽시계 상한을 둔다.
+#   관련: TASK-145.4, lt_run_with_timeout (scripts/lib.sh)
+# 2 플러그인 갱신 실패는 무시
+#   설명: 오래됐거나 닿지 않는 플러그인 저장소 때문에 전체 설치를 중단하지 않는다.
+#   관련: TASK-88
+# 3 fd 3으로 읽는 루프
+#   설명: 루프 본문이 stdin을 쓰더라도 read가 영향을 받지 않도록 fd 3에서 읽는다. POSIX sh에는 프로세스 치환이 없어 each_tool 출력을 임시 파일에 먼저 담는다.
+# 4 플러그인 존재 여부는 줄 전체 일치로 판정
+#   설명: python이 python-build 같은 접두사 일치에 속아 설치된 것으로 오판하지 않게 -x를 쓴다.
+#   관련: spec/install_plugins_spec.sh
+# 5 실패를 모아 두고 끝에서 판정
+#   설명: 플러그인 하나가 실패해도 나머지 언어는 계속 시도한다. 루프 뒤 한 번만 die로 전체 실패를 알린다.
+#   관련: TASK-89

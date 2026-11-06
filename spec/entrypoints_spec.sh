@@ -13,7 +13,7 @@
 # 구조" section) - never bundled into one script that dispatches on a mode
 # flag. This locks that decision in so a future edit can't quietly merge
 # them back together.
-Describe 'install.sh / uninstall.sh entry points (TASK-105)'
+Describe 'install.sh / uninstall.sh entry points (TASK-105)'  # ---- 1
   It 'both exist as separate executable files at the repo root'
     The path './install.sh' should be exist
     The path './uninstall.sh' should be exist
@@ -40,8 +40,16 @@ Describe 'install.sh / uninstall.sh entry points (TASK-105)'
     The output should eq '0'
   End
 
-  It 'each has its own independent curl-fetchable REPO_URL/BRANCH bootstrap'
+  It 'each has its own independent curl-fetchable REPO_URL/BRANCH bootstrap'  # ---- 2
     The contents of file './install.sh' should include 'REPO_URL='
     The contents of file './uninstall.sh' should include 'REPO_URL='
   End
 End
+
+# ======== 노트 ========
+# 1 두 진입점은 합치지 않는다
+#   설명: 각각 독립적으로 curl로 받을 수 있어야 하므로 모드 플래그로 분기하는 한 스크립트로 합치는 것을 막는다.
+#   관련: TASK-105
+# 2 각자 자체 부트스트랩
+#   설명: 저장소가 없는 상태에서 실행되므로 lib.sh 공유 없이 REPO_URL/BRANCH를 각자 들고 있어야 한다.
+#   관련: install.sh, uninstall.sh

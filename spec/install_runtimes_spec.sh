@@ -45,7 +45,7 @@ Describe 'scripts/install/05_install_runtimes.sh'
     The output should include 'INSTALLED: python 3.12.13'
   End
 
-  It 'still attempts every language after one fails, then fails overall'
+  It 'still attempts every language after one fails, then fails overall'  # ---- 1
     printf 'nodejs lts\npython 3.12.13\ngolang 1.26.1\n' > "$tool_versions"
     # sleep Mocked so retry()'s backoff between python's 3 failing attempts
     # doesn't actually wait in this test.
@@ -101,3 +101,8 @@ Describe 'scripts/install/05_install_runtimes.sh'
     rm -f "$attempt_file"
   End
 End
+
+# ======== 노트 ========
+# 1 부분 실패 격리와 전체 실패
+#   설명: 한 언어가 실패해도 다른 언어를 계속 시도하되 phase는 실패로 끝나야 06단계가 설치되지 않은 버전을 고정하지 않는다.
+#   관련: TASK-89, scripts/install/05_install_runtimes.sh

@@ -25,7 +25,7 @@ step "Phase 7: Validating installation"
 
 # Under --dry-run nothing was actually installed, so checking real system
 # state here would just report false failures — skip instead.
-if [ "${DRY_RUN:-false}" = "true" ]; then
+if [ "${DRY_RUN:-false}" = "true" ]; then  # ---- 1
   log "(dry-run: no runtimes were actually installed, skipping validation)"
   exit 0
 fi
@@ -33,7 +33,7 @@ fi
 RC_FILE="$(detect_rc_file)"
 readonly RC_FILE
 
-OK=true
+OK=true  # ---- 2
 
 # fd 3, not stdin — the `"$cmd" ... | head -n 1` pipe below would otherwise
 # race this loop's own `read` over the same fd (see 02_install_plugins.sh).
@@ -76,7 +76,7 @@ validate_one_tool() {
     log "  FAIL: '$cmd' not found in PATH."
     return 1
   fi
-  case "$resolved_path" in
+  case "$resolved_path" in  # ---- 3
     # Resolving through an asdf shim is the success case — it means asdf,
     # not some other system-wide install, is what PATH will actually run.
     # Compared against $ASDF_DATA_DIR (set by ensure_asdf_on_path above),
@@ -108,7 +108,7 @@ validate_one_tool() {
   # of the version. Every version string this tool already compares against
   # (node/java/python/rustc/go) already puts its version on line 1 too, so
   # this is behavior-identical for all of them - not gradle-specific.
-  version_line="$("$cmd" "$flag" 2>&1 | grep -m 1 '[0-9]')"
+  version_line="$("$cmd" "$flag" 2>&1 | grep -m 1 '[0-9]')"  # ---- 4
   # Compare against the version requested in .tool-versions. Aliases like
   # "lts" have no numeric core, so version_core is empty and we skip the
   # check rather than false-warn.
@@ -141,8 +141,22 @@ log "If there are any FAIL/WARN items above: run 'source $RC_FILE'" \
 # tool a phase claimed to install isn't actually usable, so a CI/wrapper
 # script checking this phase's exit code must be able to tell — logging
 # alone let a broken install report success before this.
-if $OK; then
+if $OK; then  # ---- 5
   exit 0
 else
   exit 1
 fi
+
+# ======== 노트 ========
+# 1 dry-run이면 검증 생략
+#   설명: 아무것도 설치되지 않았으므로 모든 점검이 거짓 실패가 된다.
+# 2 set -e 없이 모든 점검 결과를 모은다
+#   설명: 테스트 러너처럼 첫 실패에서 멈추지 않고 모든 항목을 보고한다. 개별 실패는 OK=false로 누적한다.
+# 3 shim 경로 점검은 $ASDF_DATA_DIR 기준
+#   설명: 실제 데이터 디렉터리 아래 shims인지 본다. ".asdf" 하드코딩은 사용자 지정 ASDF_DATA_DIR에서 오판을 낳았다. shim 밖에서 해석되면 PATH 앞쪽의 다른 바이너리가 가린 것이므로 경고한다.
+#   관련: TASK-57, spec/validate_spec.sh
+# 4 실행 결과 버전을 기대 버전과 대조
+#   설명: 플러그인별 바이너리와 버전 플래그로 실제 출력의 첫 숫자 줄을 얻어 version_core와 비교한다. 불일치는 WARN이다.
+#   관련: TASK-53, binary_for_plugin, flag_for_binary, version_core (scripts/lib.sh)
+# 5 종료 코드가 검증 결과
+#   설명: 모든 점검이 통과했을 때만 0이다. main.sh가 이 값을 보고 설치 성공 여부를 판단한다.

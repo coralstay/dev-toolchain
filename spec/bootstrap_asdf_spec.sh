@@ -31,7 +31,7 @@
 # `full-cycle` job's very first run, on real, disposable CI hardware where
 # nothing is pre-installed - a strictly safer way to exercise "not found"
 # than fighting this dev machine's real installs locally.
-Describe 'scripts/install/01_bootstrap_asdf.sh'
+Describe 'scripts/install/01_bootstrap_asdf.sh'  # ---- 1
   SCRIPT='./scripts/install/01_bootstrap_asdf.sh'
 
   setup() { export DRY_RUN=true; }
@@ -52,7 +52,7 @@ Describe 'scripts/install/01_bootstrap_asdf.sh'
     The output should not include 'brew install asdf'
   End
 
-  It 'fails clearly on a non-macOS uname (this installer is macOS-only)'
+  It 'fails clearly on a non-macOS uname (this installer is macOS-only)'  # ---- 2
     Mock uname
       echo 'Linux'
     End
@@ -62,7 +62,7 @@ Describe 'scripts/install/01_bootstrap_asdf.sh'
     The error should include 'only supports macOS'
   End
 
-  Describe 'fetch_verified_homebrew_installer() curl call (TASK-131.1)'
+  Describe 'fetch_verified_homebrew_installer() curl call (TASK-131.1)'  # ---- 3
     # A dynamic Mock-based test (calling fetch_verified_homebrew_installer()
     # directly with curl Mocked to simulate a timeout) was attempted first,
     # the same way spec/lib_spec.sh's retry() tests call a lib.sh function
@@ -102,3 +102,14 @@ Describe 'scripts/install/01_bootstrap_asdf.sh'
     End
   End
 End
+
+# ======== 노트 ========
+# 1 brew/asdf는 항상 Mock
+#   설명: 이 개발 머신에는 진짜 Homebrew와 asdf가 있다. PATH 제한만으로는 ensure_brew_on_path()가 고정 접두사를 다시 넣어 실제 brew uninstall asdf가 실행될 뻔했다. Mock이 PATH 조회에서 이기게 해야 안전하다.
+#   관련: TASK-81
+# 2 macOS 전용 가드 시험
+#   설명: uname이 Darwin이 아니면 분명한 메시지로 실패하는지 본다.
+#   관련: scripts/install/01_bootstrap_asdf.sh
+# 3 다운로드 호출을 정적으로 검증
+#   설명: 실제 네트워크 호출 없이 스크립트 본문의 curl 줄이 HTTPS 강제와 --max-time을 포함하는지 문자열로 확인한다.
+#   관련: TASK-131.1, m-18

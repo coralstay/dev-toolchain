@@ -14,7 +14,7 @@
 # every non-interactive branch (the one `curl | bash` actually takes in a
 # script/CI context, since there's no controlling tty) is deterministic and
 # exercised here.
-Describe 'scripts/install/00_select.sh'
+Describe 'scripts/install/00_select.sh'  # ---- 1
   SCRIPT='./scripts/install/00_select.sh'
 
   It 'writes the default .tool-versions languages with a global scope'\
@@ -75,3 +75,8 @@ Describe 'scripts/install/00_select.sh'
     rm -f "$out_file"
   End
 End
+
+# ======== 노트 ========
+# 1 비대화형 경로만 시험
+#   설명: /dev/tty가 필요한 대화형 경로는 이 테스트로 덮을 수 없고 --all, --local 같은 분기만 확인한다.
+#   관련: scripts/install/00_select.sh, TASK-27

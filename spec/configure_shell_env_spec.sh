@@ -27,7 +27,7 @@ Describe 'scripts/install/04_configure_shell_env.sh'
   BeforeEach 'setup'
   AfterEach 'cleanup'
 
-  It 'writes the brew shellenv line ahead of the asdf shim PATH line'
+  It 'writes the brew shellenv line ahead of the asdf shim PATH line'  # ---- 1
     When run "$SCRIPT"
     The output should include 'Phase 4'
     rc_file="$fake_home/.zshrc"
@@ -41,7 +41,7 @@ Describe 'scripts/install/04_configure_shell_env.sh'
     The variable order_ok should eq 'true'
   End
 
-  It 'does not duplicate any line when run twice (idempotent re-install)'
+  It 'does not duplicate any line when run twice (idempotent re-install)'  # ---- 2
     "$SCRIPT" > /dev/null
     rc_file="$fake_home/.zshrc"
     first_run_line_count="$(wc -l < "$rc_file")"
@@ -63,3 +63,10 @@ Describe 'scripts/install/04_configure_shell_env.sh'
     The path "$rc_file" should be exist
   End
 End
+
+# ======== 노트 ========
+# 1 PATH 순서 회귀 가드
+#   설명: brew shellenv가 asdf shim 줄보다 앞에 있어야 같은 이름의 Homebrew 포뮬러가 shim을 가리지 않는다.
+#   관련: scripts/install/04_configure_shell_env.sh
+# 2 재설치 멱등성
+#   설명: 두 번 실행해도 줄이 중복되지 않아야 한다.

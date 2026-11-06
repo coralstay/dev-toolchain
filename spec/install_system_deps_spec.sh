@@ -14,7 +14,7 @@
 Describe 'scripts/install/03_install_system_deps.sh'
   SCRIPT='./scripts/install/03_install_system_deps.sh'
 
-  It 'installs the full LT_BUILD_DEPS list in one brew call'
+  It 'installs the full LT_BUILD_DEPS list in one brew call'  # ---- 1
     # LT_REPORT_FILE: redirect away from the real $HOME/.langtoolchain-
     # report.log - this spec doesn't override HOME, and DRY_RUN=false here
     # means lt_report() would otherwise write there for real.
@@ -43,3 +43,8 @@ Describe 'scripts/install/03_install_system_deps.sh'
     The output should not include 'UNEXPECTED'
   End
 End
+
+# ======== 노트 ========
+# 1 brew는 한 번만 호출
+#   설명: 포뮬러 목록을 한 번의 brew install로 넘긴다. brew는 항상 Mock이다.
+#   관련: TASK-81, LT_BUILD_DEPS

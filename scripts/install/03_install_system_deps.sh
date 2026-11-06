@@ -25,10 +25,15 @@ step "Phase 3: Installing system build dependencies (Homebrew)"
 # One brew call for all six — brew skips anything already installed, so
 # this is safe (and fast) to re-run. retry (TASK-88): worth a couple of
 # attempts before giving up on a network blip.
-retry 3 5 run brew install $LT_BUILD_DEPS
+retry 3 5 run brew install $LT_BUILD_DEPS  # ---- 1
 # Reports the whole batch, not just the subset actually newly-installed
 # this run (unlike 02_install_plugins.sh) - brew install is idempotent
 # per-package but this is one combined call, and splitting it just to get
 # a precise per-package "already had this one" distinction isn't worth the
 # extra `brew list` round-trips for an audit log entry.
 lt_report installed "Homebrew packages: $LT_BUILD_DEPS"
+
+# ======== 노트 ========
+# 1 포뮬러 목록은 따옴표 없이 단어 분리
+#   설명: $LT_BUILD_DEPS를 의도적으로 따옴표 없이 펼쳐 포뮬러별 인자로 넘긴다. brew install은 멱등이라 다시 실행해도 안전하다.
+#   관련: LT_BUILD_DEPS (scripts/lib.sh), TASK-88

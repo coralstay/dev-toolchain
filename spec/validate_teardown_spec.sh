@@ -28,7 +28,7 @@ Describe 'scripts/uninstall/06_validate_teardown.sh'
   BeforeEach 'setup'
   AfterEach 'cleanup'
 
-  Describe 'PATH check (custom ASDF_DATA_DIR)'
+  Describe 'PATH check (custom ASDF_DATA_DIR)'  # ---- 1
     It 'reports OK when a clean PATH holds no leftover shims for a'\
 ' custom ASDF_DATA_DIR'
       export ASDF_DATA_DIR="$data_dir" PATH="$clean_path" DRY_RUN=false
@@ -83,7 +83,7 @@ this session's PATH."
     End
   End
 
-  Describe 'DRY_RUN=true'
+  Describe 'DRY_RUN=true'  # ---- 2
     It 'skips all validation instead of reporting false failures'
       export ASDF_DATA_DIR="$data_dir" PATH="$data_dir/shims:$clean_path" \
         DRY_RUN=true
@@ -95,3 +95,10 @@ this session's PATH."
     End
   End
 End
+
+# ======== 노트 ========
+# 1 사용자 지정 ASDF_DATA_DIR 기준 판정
+#   설명: 하드코딩된 ".asdf" 리터럴이면 거짓 FAIL이나 누락이 생긴다.
+#   관련: TASK-65
+# 2 dry-run이면 검증 생략
+#   설명: 실제로 지운 게 없으니 거짓 실패를 보고하지 않아야 한다.

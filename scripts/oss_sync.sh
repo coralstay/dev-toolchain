@@ -37,7 +37,7 @@ while [ -h "$SOURCE" ]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-GITHUBS_ROOT="$(cd "$REPO_ROOT/../.." && pwd)"
+GITHUBS_ROOT="$(cd "$REPO_ROOT/../.." && pwd)"  # ---- 1
 GLOBAL_FILE="${TOOL_VERSIONS_FILE:-$REPO_ROOT/.tool-versions}"
 OPENSOURCE_DIR="$GITHUBS_ROOT/opensource"
 
@@ -54,7 +54,7 @@ each_oss() {
   awk '/^# @oss / {print $3, $4, $5, $6}' "$1"
 }
 
-find_local_files() {
+find_local_files() {  # ---- 2
   for d in \
     "$GITHUBS_ROOT/dev-tools"/* \
     "$GITHUBS_ROOT/freeride"/* \
@@ -129,7 +129,7 @@ populate_ref_bins() {
   return 0
 }
 
-materialize_ref() {
+materialize_ref() {  # ---- 3
   base="$1"
   ref="$2"
   mkdir -p "$base/bundles"
@@ -157,16 +157,16 @@ materialize_ref() {
   esac
 
   if [ ! -f "$base/bundles/${ref}.bundle" ]; then
-    git -C "$base/upstream" bundle create "$base/bundles/${ref}.bundle" "$target_commit" >/dev/null 2>&1
+    git -C "$base/upstream" bundle create "$base/bundles/${ref}.bundle" "$target_commit" >/dev/null 2>&1  # ---- 4
   fi
   if [ ! -d "$base/$ref" ]; then
     git -C "$base/upstream" worktree add --quiet --detach "$base/$ref" "$target_commit" 2>/dev/null || \
-    git -C "$base/upstream" worktree add --force --quiet --detach "$base/$ref" "$target_commit"
+    git -C "$base/upstream" worktree add --force --quiet --detach "$base/$ref" "$target_commit"  # ---- 5
   fi
   populate_ref_bins "$base" "$ref"
 }
 
-cleanup_stale_branch_refs() {
+cleanup_stale_branch_refs() {  # ---- 6
   base="$1"
   active_ref="$2"
   case "$active_ref" in
@@ -174,7 +174,7 @@ cleanup_stale_branch_refs() {
   esac
   for old_ref in main master trunk; do
     if [ -d "$base/$old_ref" ]; then
-      git -C "$base/upstream" worktree remove --force "$base/$old_ref" 2>/dev/null || rm -rf "${base:?}/${old_ref:?}"
+      git -C "$base/upstream" worktree remove --force "$base/$old_ref" 2>/dev/null || rm -rf "${base:?}/${old_ref:?}"  # ---- 7
     fi
     rm -f "$base/bundles/${old_ref}.bundle"
   done
@@ -257,7 +257,7 @@ cmd_project() {
   done
 }
 
-cmd_sync() {
+cmd_sync() {  # ---- 8
   mkdir -p "$OPENSOURCE_DIR/in-use" "$OPENSOURCE_DIR/to-study"
   echo "==> Syncing global @oss repositories & bundles from $GLOBAL_FILE ..."
   each_oss "$GLOBAL_FILE" | while read -r domain name ref url; do
@@ -269,7 +269,7 @@ cmd_sync() {
     mkdir -p "$base/bundles"
     if [ ! -d "$base/upstream/.git" ]; then
       echo "  [CLONE]  $name -> $base/upstream"
-      git clone --depth 1 --quiet "$url" "$base/upstream"
+      git clone --depth 1 --quiet "$url" "$base/upstream"  # ---- 9
     fi
     materialize_ref "$base" "$ref"
     cleanup_stale_branch_refs "$base" "$ref"
@@ -290,7 +290,7 @@ cmd_sync() {
     has_oss="$(each_oss "$f" | wc -l | tr -d ' ')"
     if [ "$has_oss" -gt 0 ]; then
       mkdir -p "$proj_dir/.opensource"
-      ensure_git_exclude "$proj_dir" ".opensource/"
+      ensure_git_exclude "$proj_dir" ".opensource/"  # ---- 10
     fi
     each_oss "$f" | while read -r domain name ref _; do
       if [ "$domain" = "study" ]; then
@@ -345,7 +345,7 @@ cmd_help() {
 EOF
 }
 
-case "${1:-status}" in
+case "${1:-status}" in  # ---- 11
   status|--status)
     cmd_status
     ;;
@@ -367,3 +367,32 @@ case "${1:-status}" in
     exit 1
     ;;
 esac
+
+# ======== 노트 ========
+# 1 저장소 위치 가정: ~/githubs/<그룹>/<저장소>
+#   설명: 이 스크립트가 저장소 두 단계 위를 githubs 루트로 본다. 심볼릭 링크로 불려도 위 while 루프가 실제 파일 위치를 따라가 SCRIPT_DIR을 구한다.
+#   관련: ~/githubs/opensource, install.sh (서브커맨드 위임)
+# 2 로컬 .tool-versions를 가진 프로젝트 탐색 범위
+#   설명: 정해진 그룹 디렉터리 아래의 실제 디렉터리만 대상이다. 심볼릭 링크와 전역 파일 자신은 제외해 같은 파일을 두 번 처리하지 않는다.
+# 3 ref를 번들 + worktree로 구체화
+#   설명: 번들 파일과 worktree가 모두 있으면 bin 연결만 하고 끝낸다(멱등). 브랜치성 ref(main 등)는 HEAD, 그 외는 태그를 얕게 fetch해 해석하고 실패하면 HEAD로 내려간다.
+#   개념: 멱등
+# 4 git 번들로 해당 ref를 보관
+#   설명: upstream이 사라지거나 바뀌어도 그 시점을 복원할 수 있게 번들 아카이브를 만든다. 이미 있으면 다시 만들지 않는다.
+# 5 worktree 생성 재시도(--force)
+#   설명: 첫 시도(위 줄)가 실패했을 때만 --force로 다시 시도한다. 앞 줄이 || \ 로 이어진 두 줄짜리 명령이다.
+# 6 브랜치성 ref 정리
+#   설명: 활성 ref가 main/master/trunk가 아닐 때 이전 브랜치성 worktree와 번들을 치운다. 위치가 망가진 경우를 위한 rm -rf 폴백은 ${var:?}로 빈 변수 삭제를 막는다.
+# 7 빈 변수로 인한 광범위 삭제 방지
+#   설명: ${var:?}는 변수가 비면 즉시 중단시킨다. 변수가 비었을 때 rm -rf가 "/"를 노리는 사고를 막는 안전장치다.
+# 8 전역 @oss 저장소 동기화 후 프로젝트 링크 생성
+#   설명: 먼저 전역 .tool-versions의 @oss 항목을 clone·번들화하고, 다음으로 각 프로젝트의 .opensource/<이름> 심볼릭 링크를 만든다.
+#   관련: .tool-versions
+# 9 외부 저장소 clone(핀 없음)
+#   설명: .tool-versions의 url을 그대로 받는다. 설치기(install.sh)와 달리 커밋 고정이나 해시 검증이 없다는 점에 유의한다.
+#   관련: install.sh (고정 clone)
+# 10 프로젝트 .gitignore가 아니라 .git/info/exclude에 추가
+#   설명: 저장소를 건드리지 않고 로컬에서만 .opensource/를 무시한다. 같은 줄이 이미 있으면 다시 쓰지 않는다.
+# 11 서브커맨드 디스패치
+#   설명: 인자가 없으면 status다. install.sh가 알려진 서브커맨드를 이 스크립트로 exec해 넘기므로 두 곳의 이름 목록이 같아야 한다.
+#   관련: install.sh
