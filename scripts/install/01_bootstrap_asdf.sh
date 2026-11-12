@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 01_bootstrap_asdf
+# description: Homebrew와 asdf가 없으면 검증된 방식으로 설치하는 설치 1단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Ensures Homebrew and asdf itself are present. Both of these steps were
 # missing entirely in the original version of this tool — a fresh Mac with
 # neither pre-installed would fail immediately with "brew: command not
@@ -30,9 +39,9 @@ readonly SCRIPT_DIR
 # Bump both together when intentionally picking up a newer Homebrew
 # installer:
 #   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/<new-sha>/install.sh | shasum -a 256
-readonly HOMEBREW_INSTALL_COMMIT="c8188c1d48d77234a458b944d1d1b750f015a1c4"
+readonly HOMEBREW_INSTALL_COMMIT="c8188c1d48d77234a458b944d1d1b750f015a1c4"  # ---- 1
 readonly HOMEBREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/$HOMEBREW_INSTALL_COMMIT/install.sh"
-readonly HOMEBREW_INSTALL_SHA256="12479a24be3f5307eecac7cde670fad7118640f031229e964f544b1367b52a41"
+readonly HOMEBREW_INSTALL_SHA256="12479a24be3f5307eecac7cde670fad7118640f031229e964f544b1367b52a41"  # ---- 2
 
 # LT_DOWNLOAD_TIMEOUT (TASK-145.1): fetch_verified_homebrew_installer() below
 # used to share LT_VERSION_FETCH_TIMEOUT (lib.sh, default 5s) with the small
@@ -50,7 +59,7 @@ step "Phase 1: Ensuring Homebrew and asdf are installed"
 # Hard requirement: everything downstream (Homebrew formulas, asdf itself)
 # assumes macOS. Fail loudly and immediately rather than limping through
 # the rest of the script on an unsupported OS.
-[ "$(uname)" = "Darwin" ] || die "This installer only supports macOS."
+[ "$(uname)" = "Darwin" ] || die "This installer only supports macOS."  # ---- 3
 
 # Homebrew might already be on PATH from a normal shell — or might have
 # been installed by a previous run of THIS script but not yet be visible
@@ -79,9 +88,9 @@ ensure_brew_on_path
 fetch_verified_homebrew_installer() {
   local dest="$1" actual_sha256
   curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 \
-    --max-time "$LT_DOWNLOAD_TIMEOUT" -o "$dest" "$HOMEBREW_INSTALL_URL" || return 1
-  actual_sha256="$(shasum -a 256 "$dest" | awk '{print $1}')"
-  if [ "$actual_sha256" != "$HOMEBREW_INSTALL_SHA256" ]; then
+    --max-time "$LT_DOWNLOAD_TIMEOUT" -o "$dest" "$HOMEBREW_INSTALL_URL" || return 1  # ---- 4
+  actual_sha256="$(shasum -a 256 "$dest" | awk '{print $1}')"  # ---- 5
+  if [ "$actual_sha256" != "$HOMEBREW_INSTALL_SHA256" ]; then  # ---- 6
     log "  Homebrew installer checksum mismatch: expected" \
       "$HOMEBREW_INSTALL_SHA256, got $actual_sha256 — refusing to run it."
     return 1
@@ -115,7 +124,7 @@ run_homebrew_installer() {
   local dest status
   dest="$(mktemp)"
   if fetch_verified_homebrew_installer "$dest"; then
-    NONINTERACTIVE=1 bash "$dest"
+    NONINTERACTIVE=1 bash "$dest"  # ---- 7
     status=$?
   else
     status=1
@@ -164,7 +173,7 @@ install_homebrew_if_missing() {
     # function re-runs its own commands on every call, so no extra
     # subshell wrapping is needed to make retry's repeated calls actually
     # re-fetch instead of replaying a value captured once at parse time.
-    retry 3 5 run_homebrew_installer
+    retry 3 5 run_homebrew_installer  # ---- 8
   fi
   # The installer just placed `brew` at a fixed location but didn't add it
   # to this process's PATH — do that now so the rest of THIS run can use it.
@@ -202,9 +211,36 @@ install_asdf_if_missing() {
   # actually installing under DRY_RUN=true. retry (TASK-88): a formula
   # download failing on a flaky connection shouldn't need a full manual
   # re-run.
-  retry 3 5 run brew install asdf
+  retry 3 5 run brew install asdf  # ---- 9
   lt_report installed "asdf (Homebrew)"
 }
 
 install_homebrew_if_missing
 install_asdf_if_missing
+
+# ======== 노트 ========
+# 1 Homebrew 설치 스크립트는 커밋 SHA로 고정
+#   설명: Homebrew/install의 특정 커밋을 URL에 박아 부동 브랜치를 신뢰하지 않는다. 갱신은 SHA와 SHA256을 함께 사람이 바꾼다.
+#   관련: TASK-131.1, decision-1, docs/download-points-inventory.md
+#   개념: 핀(pin)
+# 2 내려받은 설치기의 기대 SHA256
+#   설명: 커밋 고정만으로는 전송 중 변조를 못 막으므로 내용 해시를 대조한다. 불일치하면 실행하지 않는다.
+#   관련: docs/download-integrity-techniques.md
+# 3 macOS 전용 가드
+#   설명: Linux 등에서 실행되면 Homebrew·경로 가정이 모두 깨지므로 시작부에서 막는다.
+# 4 HTTPS 강제와 시간 제한이 걸린 다운로드
+#   설명: --proto =https, --proto-redir =https, --tlsv1.2로 다운그레이드를 막고 --max-time으로 무한 대기를 막는다. 실패하면 return 1로 검증 단계에 가지 않는다.
+#   관련: m-18, SonarCloud S6506, LT_DOWNLOAD_TIMEOUT
+# 5 다운로드 파일 해시 계산
+#   설명: 파일을 실행하기 전에 sha256을 계산해 바로 아래 비교에 쓴다.
+# 6 검증 실패 시 실행 거부
+#   설명: 해시가 다르면 설치기를 실행하지 않고 실패를 돌려준다. 검증과 실행 사이에 파일이 바뀌지 않도록 같은 $dest 파일만 쓴다.
+#   관련: TASK-131.1
+# 7 검증된 파일만 실행
+#   설명: curl | bash로 바로 흘려 넣지 않고, 위에서 검증한 임시 파일을 실행한다. 순서(다운로드 → 해시 → 실행)가 보안 불변식이다.
+# 8 다운로드·검증·실행 전체를 재시도 단위로
+#   설명: 일시적 네트워크 오류는 재시도하되 매번 처음부터 다시 받아 검증한다.
+#   관련: TASK-88
+# 9 asdf는 Homebrew로 설치
+#   설명: 설치 위치와 shim 규칙을 Homebrew asdf(Go 재작성 0.16+)에 맡긴다.
+#   관련: scripts/install/04_configure_shell_env.sh

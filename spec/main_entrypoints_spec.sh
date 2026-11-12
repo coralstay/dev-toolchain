@@ -1,3 +1,12 @@
+# ---
+# title: main_entrypoints_spec
+# description: install/uninstall main.sh의 플래그 검증 동작을 확인하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/main.sh and scripts/uninstall/
 # main.sh - previously untested (see git history: no main_spec.sh ever
@@ -13,7 +22,7 @@
 # uninstall.sh entry points (not scripts/install/main.sh directly), so this
 # also exercises install.sh's/uninstall.sh's own "local clone detected ->
 # exec straight into main.sh" dispatch, itself never directly tested before.
-Describe 'install.sh -> scripts/install/main.sh (flag validation)'
+Describe 'install.sh -> scripts/install/main.sh (flag validation)'  # ---- 1
   SCRIPT='./install.sh'
 
   setup() {
@@ -38,7 +47,7 @@ Describe 'install.sh -> scripts/install/main.sh (flag validation)'
   End
 End
 
-Describe 'uninstall.sh -> scripts/uninstall/main.sh (flag validation)'
+Describe 'uninstall.sh -> scripts/uninstall/main.sh (flag validation)'  # ---- 2
   SCRIPT='./uninstall.sh'
 
   setup() {
@@ -62,3 +71,11 @@ Describe 'uninstall.sh -> scripts/uninstall/main.sh (flag validation)'
     The path "$lock_dir" should not be exist
   End
 End
+
+# ======== 노트 ========
+# 1 알 수 없는 플래그 검증
+#   설명: 실제 phase는 대화형·파괴적이라 시험할 수 없으므로 플래그 검증과 잠금 해제까지만 확인한다.
+#   관련: scripts/install/main.sh
+# 2 제거 쪽 같은 검증
+#   설명: install과 같은 보장을 제거 오케스트레이터에서도 확인한다.
+#   관련: scripts/uninstall/main.sh

@@ -1,3 +1,12 @@
+# ---
+# title: validate_spec
+# description: 07_validate.sh의 shim 경로 점검과 버전 불일치 점검을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/07_validate.sh, covering the two
 # logic bugs fixed this session (TASK-53, TASK-57). No command mocking:
@@ -43,7 +52,7 @@ EOF
     chmod +x "$data_dir/shims/$1"
   }
 
-  Describe 'shim-path check (TASK-57 regression)'
+  Describe 'shim-path check (TASK-57 regression)'  # ---- 1
     It 'reports OK when the binary resolves under a custom'\
 ' (non-".asdf") ASDF_DATA_DIR'
       fake_cmd rustc 'rustc 1.94.0 (abc 2026-01-01)'
@@ -76,7 +85,7 @@ EOF
     End
   End
 
-  Describe 'version-mismatch check (TASK-53 regression)'
+  Describe 'version-mismatch check (TASK-53 regression)'  # ---- 2
     It 'WARNs when the installed version differs from .tool-versions'
       fake_cmd go 'go version go1.20.0 darwin/arm64'
       printf 'golang 1.26.1\n' > "$tool_versions"
@@ -172,3 +181,11 @@ darwin/arm64', expected version matching '1.26.1'"
     End
   End
 End
+
+# ======== 노트 ========
+# 1 shim 경로 점검 회귀
+#   설명: 사용자 지정 ASDF_DATA_DIR에서도 shim을 올바르게 인식하는지 확인한다.
+#   관련: TASK-57
+# 2 버전 불일치 경고 회귀
+#   설명: 설치된 버전이 .tool-versions와 다를 때만 WARN이 나오는지 확인한다.
+#   관련: TASK-53

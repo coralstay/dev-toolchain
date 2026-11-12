@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 01_uninstall_runtimes
+# description: .tool-versions와 로컬 핀 기록에 있는 asdf 런타임을 제거하는 제거 1단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Uninstalls each asdf-managed language runtime listed in .tool-versions.
 # Ensures asdf/shims are on PATH itself, same reasoning as every other
 # phase script — main.sh runs each phase as its own process.
@@ -21,7 +30,7 @@ readonly REPO_ROOT
 # (e.g. the TASK-28 override flow) was never what got checked/uninstalled
 # below — this phase would compare against the wrong version string and
 # report a still-installed runtime as "already absent".
-if [ -n "${TOOL_VERSIONS_FILE:-}" ]; then
+if [ -n "${TOOL_VERSIONS_FILE:-}" ]; then  # ---- 1
   readonly CONFIG_FILE="$TOOL_VERSIONS_FILE"
 elif [ -f "$HOME/.tool-versions" ]; then
   readonly CONFIG_FILE="$HOME/.tool-versions"
@@ -47,7 +56,7 @@ step "Phase 1: Uninstalling language runtimes"
 # Returns:
 #   None
 #######################################
-uninstall_from_config_file() {
+uninstall_from_config_file() {  # ---- 2
   # fd 3, not stdin — see scripts/install/02_install_plugins.sh for why.
   # POSIX sh has no process substitution, so each_tool's output goes to a
   # temp file first.
@@ -60,7 +69,7 @@ uninstall_from_config_file() {
     if asdf list "$plugin" "$version" >/dev/null 2>&1; then
       log "Uninstalling $plugin $version ..."
       # `|| true`: don't let one stubborn uninstall abort the whole loop.
-      if run asdf uninstall "$plugin" "$version"; then
+      if run asdf uninstall "$plugin" "$version"; then  # ---- 3
         lt_report removed "$plugin $version (asdf)"
       fi
     else
@@ -84,7 +93,7 @@ fi
 # never appears in $CONFIG_FILE above, so without this it would silently
 # survive uninstall. A directory that's since been deleted, or had its
 # .tool-versions removed by hand, is skipped rather than treated as an error.
-readonly LOCAL_PINS_FILE="$ASDF_DATA_DIR/$LT_LOCAL_PINS_FILE_NAME"
+readonly LOCAL_PINS_FILE="$ASDF_DATA_DIR/$LT_LOCAL_PINS_FILE_NAME"  # ---- 4
 if [ -f "$LOCAL_PINS_FILE" ]; then
   # fd 4 (not 3, not stdin): uninstall_from_config_file's own inner loop
   # already owns fd 3 for its each_tool read, and this loop calls that
@@ -97,3 +106,15 @@ if [ -f "$LOCAL_PINS_FILE" ]; then
     fi
   done 4< "$LOCAL_PINS_FILE"
 fi
+
+# ======== 노트 ========
+# 1 대상 설정 파일 우선순위
+#   설명: TOOL_VERSIONS_FILE, 그다음 $HOME/.tool-versions, 마지막으로 저장소 기본 순이다. 저장소 기본을 먼저 쓰면 설치 때 대화형으로 바꾼 버전과 어긋나 설치된 런타임을 이미 없다고 보고했다.
+#   관련: TASK-28
+# 2 설정 파일 하나의 런타임 제거
+#   설명: 전역 설정과 로컬 핀 설정 양쪽에서 재사용한다. 이미 없는 항목은 건너뛰므로 재실행이 안전하다.
+# 3 제거도 run을 거친다
+#   설명: dry-run에서는 출력만 하고, 성공했을 때만 감사 로그에 남긴다.
+# 4 로컬 핀 기록의 읽기 쪽
+#   설명: 06_set_globals.sh가 기록한 디렉터리 목록이다. 로컬에만 고정된 버전은 전역 설정에 없어서 이 기록이 없으면 제거 대상을 알 수 없다.
+#   관련: TASK-83, scripts/install/06_set_globals.sh

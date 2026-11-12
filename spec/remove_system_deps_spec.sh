@@ -1,3 +1,12 @@
+# ---
+# title: remove_system_deps_spec
+# description: 04_remove_system_deps.sh의 brew 제거·정리 동작을 mock으로 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/04_remove_system_deps.sh (also the
 # file at the center of TASK-78: missing ensure_brew_on_path caused brew
@@ -58,7 +67,7 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
     The output should not include 'UNEXPECTED'
   End
 
-  It 'treats "required by another package" as informational, not fatal'
+  It 'treats "required by another package" as informational, not fatal'  # ---- 1
     Mock brew
       case "$1 $2" in
         "list openssl@3") exit 0 ;;
@@ -75,3 +84,8 @@ Describe 'scripts/uninstall/04_remove_system_deps.sh'
     The output should include 'Skipped openssl@3'
   End
 End
+
+# ======== 노트 ========
+# 1 의존 거부는 치명적이지 않음
+#   설명: 다른 포뮬러가 의존해 brew가 제거를 거부해도 phase가 계속되어야 한다.
+#   관련: scripts/uninstall/04_remove_system_deps.sh

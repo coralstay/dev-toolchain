@@ -1,3 +1,12 @@
+# ---
+# title: remove_plugins_spec
+# description: 02_remove_plugins.sh의 플러그인 제거 범위와 기존 플러그인 보존을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/02_remove_plugins.sh - removes
 # EVERY installed asdf plugin this tool is responsible for (not just this
@@ -6,7 +15,7 @@
 # snapshot says pre-existed langtoolchain, same safety guarantee
 # 05_purge_asdf_core.sh already has for the asdf data dir.
 # `asdf` is always Mocked, not left to resolve for real.
-Describe 'scripts/uninstall/02_remove_plugins.sh'
+Describe 'scripts/uninstall/02_remove_plugins.sh'  # ---- 1
   SCRIPT='./scripts/uninstall/02_remove_plugins.sh'
 
   setup() {
@@ -57,7 +66,7 @@ Describe 'scripts/uninstall/02_remove_plugins.sh'
     The output should include 'REMOVED: python'
   End
 
-  It 'does not fail the whole script when one plugin remove fails'
+  It 'does not fail the whole script when one plugin remove fails'  # ---- 2
     Mock asdf
       case "$1 $2" in
         "plugin list") printf 'nodejs\npython\n' ;;
@@ -134,3 +143,10 @@ Describe 'scripts/uninstall/02_remove_plugins.sh'
     The output should not include 'REMOVED:'
   End
 End
+
+# ======== 노트 ========
+# 1 이 도구가 책임지는 플러그인만 제거
+#   설명: 전체 플러그인 제거, 마지막 줄 개행 누락, 설치 전부터 있던 플러그인 보존을 확인한다.
+#   관련: TASK-77, TASK-130
+# 2 개별 실패는 전체를 막지 않음
+#   설명: 한 플러그인 제거가 실패해도 나머지를 계속 처리한다.

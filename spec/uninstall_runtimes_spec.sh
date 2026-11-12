@@ -1,3 +1,12 @@
+# ---
+# title: uninstall_runtimes_spec
+# description: 01_uninstall_runtimes.sh가 로컬 핀 기록을 읽어 런타임을 제거하는지 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/uninstall/01_uninstall_runtimes.sh's
 # local-pins read side (TASK-83): a runtime version only ever pinned inside
@@ -5,7 +14,7 @@
 # in the global config this script reads by default, so without reading
 # $ASDF_DATA_DIR/langtoolchain-local-pins too, it would silently survive
 # uninstall. See spec/set_globals_spec.sh for the write side.
-Describe 'scripts/uninstall/01_uninstall_runtimes.sh'
+Describe 'scripts/uninstall/01_uninstall_runtimes.sh'  # ---- 1
   SCRIPT='./scripts/uninstall/01_uninstall_runtimes.sh'
 
   setup() {
@@ -86,3 +95,8 @@ Describe 'scripts/uninstall/01_uninstall_runtimes.sh'
     The status should be success
   End
 End
+
+# ======== 노트 ========
+# 1 로컬 핀 기록 읽기 쪽
+#   설명: 로컬에만 고정된 버전도 기록을 통해 제거 대상에 들어가는지 확인한다.
+#   관련: TASK-83, spec/set_globals_spec.sh

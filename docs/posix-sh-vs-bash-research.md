@@ -1,3 +1,12 @@
+---
+title: posix-sh-vs-bash-research
+description: POSIX sh 유지 결정(decision-19)의 근거가 된 sh와 bash 비교 조사 원자료
+authors: [coralstay]
+license: AGPL-3.0-only
+status: draft
+created_date: '2026-11-06'
+updated_date: '2026-11-06'
+---
 # POSIX sh vs bash 리서치 기록 (decision-19)
 
 decision-19("POSIX sh 유지, SonarCloud S7688 규칙은 활성 유지")의 결론만 보면

@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: main
+# description: 설치 1~7단계를 각각 별도 프로세스로 순서대로 실행하는 설치 오케스트레이터
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Orchestrator: runs each install phase in its own process, in order.
 # Each phase is independently correct and independently runnable — this
 # script exists only for the convenience of running all of them at once.
@@ -20,13 +29,13 @@ readonly SCRIPT_DIR
 # either. Combined with the SELECTION_FILE cleanup into one trap below once
 # SELECTION_FILE is known, since a second `trap ... EXIT` would silently
 # replace this one rather than add to it.
-acquire_lock
+acquire_lock  # ---- 1
 trap 'release_lock' EXIT
 # INT/TERM (TASK-90): a separate trap slot from EXIT above, so registering
 # this doesn't replace the lock-release trap — both fire on Ctrl-C (INT
 # trap runs handle_interrupt's `exit 130`, which then triggers the EXIT
 # trap for the actual cleanup).
-trap 'handle_interrupt' INT TERM
+trap 'handle_interrupt' INT TERM  # ---- 2
 
 DRY_RUN=false
 # Flags meant for 00_select.sh get collected here, one per line, instead of
@@ -55,7 +64,7 @@ printf '%s\n' "langtoolchain installer"
 # under DRY_RUN, matching every other DRY_RUN-gated check in this codebase:
 # this is a precondition for a REAL run, not something a preview needs.
 if [ "$DRY_RUN" != "true" ]; then
-  ensure_disk_space 5
+  ensure_disk_space 5  # ---- 3
 fi
 
 # run_language_selection (m-8): extracted so main.sh's own top-level flow
@@ -94,7 +103,7 @@ run_language_selection() {
   # If the user backs out (answers "n" to everything, or declines the final
   # confirmation), it exits non-zero and prints nothing — the `if` catches
   # that instead of letting `set -e` kill this script with a confusing error.
-  if SELECTION_FILE="$(sh "$SCRIPT_DIR/00_select.sh" "$@")"; then
+  if SELECTION_FILE="$(sh "$SCRIPT_DIR/00_select.sh" "$@")"; then  # ---- 4
     # Every later phase reads $TOOL_VERSIONS_FILE instead of the repo's own
     # .tool-versions, so they only touch what the user actually picked.
     export TOOL_VERSIONS_FILE="$SELECTION_FILE"
@@ -105,7 +114,7 @@ run_language_selection() {
     # reaches the unconditional `rm -f` that used to be the only cleanup.
     # Replaces (not adds to) the lock-only trap set above — folds
     # release_lock in too, since a script has only one EXIT trap at a time.
-    trap 'rm -f "$SELECTION_FILE"; release_lock' EXIT
+    trap 'rm -f "$SELECTION_FILE"; release_lock' EXIT  # ---- 5
   else
     # No message here - 00_select.sh already explained why it exited
     # non-zero (a die() error like an invalid --local directory, or its own
@@ -125,7 +134,7 @@ run_language_selection
 # would risk recording state THIS run itself already created as if it had
 # pre-existed, which is exactly what uninstall (TASK-124) relies on this
 # NOT doing.
-lt_snapshot_prior_asdf_state
+lt_snapshot_prior_asdf_state  # ---- 6
 
 # Each phase runs as its OWN `sh` process (not sourced) — this is what
 # makes them independent: none of them can accidentally rely on a variable
@@ -142,7 +151,7 @@ for phase in \
   06_set_globals.sh \
   07_validate.sh
 do
-  run_phase "$SCRIPT_DIR/$phase"
+  run_phase "$SCRIPT_DIR/$phase"  # ---- 7
 done
 
 printf '\n'
@@ -155,3 +164,24 @@ else
   printf '%s%s\n' "Done. Run 'source ~/.zshrc' (or open a new terminal)" \
     " to pick up the PATH changes."
 fi
+
+# ======== 노트 ========
+# 1 실행 시작 전에 배타 잠금
+#   설명: install과 uninstall이 같은 asdf/Homebrew 상태를 바꾸므로 같은 잠금을 공유해 서로 경합하지 않게 한다. EXIT trap은 한 개뿐이라 아래에서 SELECTION_FILE 정리와 합쳐 다시 건다.
+#   관련: acquire_lock (scripts/lib.sh), TASK-84
+# 2 INT/TERM은 EXIT와 별도 trap 슬롯
+#   설명: Ctrl-C에 handle_interrupt가 exit 130을 호출하고, 그러면 EXIT trap이 정리와 잠금 해제를 한다. 둘이 서로 덮어쓰지 않는다.
+#   관련: TASK-90, handle_interrupt (scripts/lib.sh)
+# 3 최소 여유 공간 5GB 사전 점검
+#   설명: Homebrew와 런타임 컴파일 도중 디스크가 차서 반쯤 설치된 상태로 끝나는 일을 막는다. dry-run에서는 건너뛴다.
+# 4 언어 선택 결과는 stdout의 파일 경로 하나
+#   설명: 00_select.sh는 stdout에 경로만 쓰므로 명령 치환으로 받는다. if 안에 넣어 실패를 set -e가 아닌 명시적 분기로 처리한다.
+#   관련: scripts/install/00_select.sh
+# 5 EXIT trap 합치기
+#   설명: 어느 phase에서 실패해도 선택 임시 파일이 남지 않게 한다. 앞서 건 잠금 해제 trap을 교체하므로 release_lock도 함께 넣는다.
+# 6 스냅샷은 phase 루프 시작 전에
+#   설명: 01_bootstrap_asdf.sh가 asdf를 설치하기 전이어야 이 실행이 만든 상태를 "원래 있던 것"으로 잘못 기록하지 않는다. 제거(TASK-124)가 이 기록에 의존한다.
+#   관련: TASK-123, decision-6
+# 7 phase마다 별도 프로세스
+#   설명: source하지 않고 각자 sh 프로세스로 실행해 서로의 변수·PATH 변경에 기대지 못하게 한다. run_phase를 써야 INT/TERM trap이 phase 도중에도 동작한다.
+#   관련: run_phase (scripts/lib.sh)

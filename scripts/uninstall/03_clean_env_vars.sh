@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 03_clean_env_vars
+# description: 설치 4단계가 rc 파일에 쓴 줄을 모두 찾아 지우는 제거 3단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Strips every line this tool's install phase (04_configure_shell_env.sh)
 # may have added, from whichever rc files exist. Sweeps lib.sh's
 # LT_KNOWN_RC_FILES (TASK-66) — all rc files this tool ever knows how to
@@ -12,7 +21,7 @@ readonly SCRIPT_DIR
 
 step "Phase 3: Cleaning shell environment variables"
 
-for rc_name in $LT_KNOWN_RC_FILES; do
+for rc_name in $LT_KNOWN_RC_FILES; do  # ---- 1
   rc="$HOME/$rc_name"
   [ -f "$rc" ] || continue   # nothing to clean if this rc file doesn't exist
   log "Cleaning $rc ..."
@@ -45,7 +54,7 @@ for rc_name in $LT_KNOWN_RC_FILES; do
   # `set --` below re-splits only on the newlines, never on the spaces
   # inside a line.
   ENV_DEFS_TMP="$(mktemp)"
-  lt_env_var_defs > "$ENV_DEFS_TMP"
+  lt_env_var_defs > "$ENV_DEFS_TMP"  # ---- 2
   SED_ARGS=""
   while IFS= read -r def; do
     pattern="${def%%|||*}"
@@ -59,7 +68,19 @@ for rc_name in $LT_KNOWN_RC_FILES; do
   # shellcheck disable=SC2086
   set -- $SED_ARGS
   unset IFS
-  sed -E -i '.bak' "$@" "$rc"
+  sed -E -i '.bak' "$@" "$rc"  # ---- 3
   log "  Backup preserved at ${rc}.bak"
   lt_report modified "$rc (removed asdf/build-flag lines, backup: ${rc}.bak)"
 done
+
+# ======== 노트 ========
+# 1 알려진 rc 파일을 모두 훑는다
+#   설명: 설치 때와 다른 쉘로 제거를 실행할 수 있으므로 지금 감지되는 하나가 아니라 이 도구가 쓸 수 있는 모든 rc 파일을 본다.
+#   관련: TASK-66, LT_KNOWN_RC_FILES (scripts/lib.sh)
+# 2 지울 패턴은 설치 쪽과 같은 정의에서
+#   설명: 패턴을 따로 들고 있으면 설치와 어긋난다(TASK-56). 구분자 |||로 나뉜 첫 필드만 쓴다.
+#   관련: TASK-56, TASK-64, scripts/lib.sh
+#   개념: SSOT
+# 3 BSD sed 호환 in-place 편집 + 백업
+#   설명: macOS의 sed -i는 확장자 인자가 필수라서 '.bak'을 주며, 덕분에 항상 복구용 사본이 남는다. -E는 GNU 전용 \| 교대 표현에 기대지 않기 위해서다. 구분자 \#는 패턴 속 /를 이스케이프하지 않으려는 선택이다.
+#   관련: TASK-56, docs/sed-portability-audit.md

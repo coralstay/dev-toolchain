@@ -1,3 +1,12 @@
+# ---
+# title: install_plugins_spec
+# description: 02_install_plugins.sh의 플러그인 설치 여부 정확 일치 판정을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression test for scripts/install/02_install_plugins.sh's exact-match
 # plugin-presence check (`grep -qx`) - guards against a plugin named e.g.
@@ -38,7 +47,7 @@ Describe 'scripts/install/02_install_plugins.sh'
     End
   End
 
-  Describe 'plugin not installed (prefix false-positive guard)'
+  Describe 'plugin not installed (prefix false-positive guard)'  # ---- 1
     It 'does not mistake "python-build" for an installed "python" plugin'
       Mock asdf
         case "$1 $2" in
@@ -68,7 +77,7 @@ Describe 'scripts/install/02_install_plugins.sh'
     End
   End
 
-  Describe 'partial failure isolation (TASK-89)'
+  Describe 'partial failure isolation (TASK-89)'  # ---- 2
     It 'still attempts every plugin even after one fails, then fails overall'
       printf 'nodejs lts\npython 3.12.13\n' > "$tool_versions"
       # sleep Mocked so retry()'s backoff between nodejs's 3 failing
@@ -95,3 +104,11 @@ Describe 'scripts/install/02_install_plugins.sh'
     End
   End
 End
+
+# ======== 노트 ========
+# 1 접두사 오탐 방지
+#   설명: python-build가 있다고 python이 설치된 것으로 오판하면 안 된다. grep -qx의 정확 일치를 검증한다.
+#   관련: scripts/install/02_install_plugins.sh
+# 2 부분 실패 격리
+#   설명: 한 플러그인이 실패해도 나머지를 시도하고 마지막에 전체를 실패시킨다.
+#   관련: TASK-89

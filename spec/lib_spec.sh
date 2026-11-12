@@ -1,3 +1,12 @@
+# ---
+# title: lib_spec
+# description: scripts/lib.sh의 순수 함수들을 단위 검증하는 shellspec 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Unit tests for scripts/lib.sh - the pure-function utilities every
 # install/uninstall phase script sources. No mocking needed here: these
@@ -336,7 +345,7 @@ EOF
     End
   End
 
-  Describe 'acquire_lock() / release_lock() (TASK-84)'
+  Describe 'acquire_lock() / release_lock() (TASK-84)'  # ---- 1
     setup() {
       scratch="$(mktemp -d)"
       LT_LOCK_DIR="$scratch/lt-test.lock"
@@ -477,7 +486,7 @@ EOF
     End
   End
 
-  Describe 'lt_run_with_timeout() (TASK-138.1, decision-10)'
+  Describe 'lt_run_with_timeout() (TASK-138.1, decision-10)'  # ---- 2
     It 'returns the command exit status when it finishes before the timeout'
       When call lt_run_with_timeout 5 true
       The status should be success
@@ -594,7 +603,7 @@ RUNNER_EOF
     End
   End
 
-  Describe 'run_phase() (TASK-93)'
+  Describe 'run_phase() (TASK-93)'  # ---- 3
     It "returns the phase script's own exit status instead of always 0"
       phase_script="$(mktemp)"
       echo 'exit 1' > "$phase_script"
@@ -705,7 +714,7 @@ RUNNER_EOF
   End
 
   Describe 'lt_snapshot_prior_asdf_state() / lt_prior_state_get()'\
-' (m-13/TASK-123, decision-6)'
+' (m-13/TASK-123, decision-6)'  # ---- 4
     # SAFETY: `brew`/`asdf` are always Mocked below, never left to resolve
     # for real - same reasoning as purge_asdf_core_spec.sh/
     # bootstrap_asdf_spec.sh's own header comments (this dev machine has a
@@ -1564,7 +1573,7 @@ RUNNER_EOF
     End
   End
 
-  Describe 'lt_resolve_version_list() (m-15/TASK-129.1, decision-17)'
+  Describe 'lt_resolve_version_list() (m-15/TASK-129.1, decision-17)'  # ---- 5
     # Own scratch files (never the real $HOME/$$-named defaults) and a
     # not-yet-tripped breaker before every case, same isolation rules as
     # the Describe blocks above. LT_VERSION_LIST_UNREACHABLE_FILE is a
@@ -1787,3 +1796,20 @@ RUNNER_EOF
     End
   End
 End
+
+# ======== 노트 ========
+# 1 잠금 동작
+#   설명: 획득, 중복 거부, stale 잠금 회수, 해제를 확인한다.
+#   관련: TASK-84, scripts/lib.sh
+# 2 타임아웃 헬퍼
+#   설명: 실제 sleep 명령으로 시간 초과 시 124 반환과 정상 종료 시 통과를 확인한다.
+#   관련: TASK-138.1, decision-10
+# 3 phase 실행기
+#   설명: 자식 종료 코드를 그대로 전달하는지 확인한다.
+#   관련: TASK-90, TASK-93
+# 4 사전 상태 스냅샷
+#   설명: 기록은 한 번만, dry-run에서는 쓰지 않음, 키가 없으면 실패를 확인한다.
+#   관련: decision-6, TASK-123
+# 5 버전 목록 해석
+#   설명: 신선한 캐시, 실시간 조회, 전부 실패 시 1 반환을 확인한다.
+#   관련: decision-17, TASK-129.1

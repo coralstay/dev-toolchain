@@ -1,3 +1,12 @@
+# ---
+# title: e2e-verify
+# description: 실제 macOS(arm64·Intel) 러너에서 설치·제거 스크립트를 끝까지 검증하는 GitHub Actions 워크플로
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 name: E2E verify (real macOS, arm64 + Intel)
 
 # End-to-end verification of the installer/uninstaller on real, clean,
@@ -16,7 +25,7 @@ on:
   workflow_dispatch: {}
   push:
     branches: [main]
-    paths: &e2e-relevant-paths
+    paths: &e2e-relevant-paths  # ---- 1
       - "scripts/**"
       - "install.sh"
       - "uninstall.sh"
@@ -37,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sh scripts/lint/check-hardcoded-paths.sh
+      - run: sh scripts/lint/check-hardcoded-paths.sh  # ---- 2
 
   full-cycle:
     name: full install -> uninstall cycle (${{ matrix.label }})
@@ -49,7 +58,7 @@ jobs:
             label: arm64
           - runner: macos-15-intel
             label: intel
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}  # ---- 3
     steps:
       - uses: actions/checkout@v4
 
@@ -60,7 +69,7 @@ jobs:
           test "$(uname -m)" = "${{ matrix.label == 'intel' && 'x86_64' || 'arm64' }}"
 
       - name: run installer for real (TASK-6, 9-12, 42-45)
-        run: sh scripts/install/main.sh --all --yes
+        run: sh scripts/install/main.sh --all --yes  # ---- 4
 
       - name: verify each shim wins in a real new login shell (TASK-18)
         run: |
@@ -99,7 +108,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: remove Homebrew entirely first
+      - name: remove Homebrew entirely first  # ---- 5
         run: |
           if command -v brew >/dev/null 2>&1; then
             NONINTERACTIVE=1 /bin/bash -c \
@@ -114,7 +123,7 @@ jobs:
     name: curl | sh with git hidden (TASK-31)
     runs-on: macos-15
     steps:
-      - name: run remote one-liner with git unreachable, expect graceful failure
+      - name: run remote one-liner with git unreachable, expect graceful failure  # ---- 6
         run: |
           # /usr/bin (where Xcode CLT's git lives) is the read-only signed
           # system volume - not even `sudo mv` can touch it. And dropping
@@ -158,7 +167,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: start install, kill it partway through phase 5, confirm partial state doesn't wedge a re-run
+      - name: start install, kill it partway through phase 5, confirm partial state doesn't wedge a re-run  # ---- 7
         run: |
           # macOS doesn't ship a `timeout` utility, so start in the
           # background and kill it ourselves after a delay instead.
@@ -175,5 +184,30 @@ jobs:
         run: sh scripts/install/main.sh --all --yes
 
       - name: cleanup
-        if: always()
+        if: always()  # ---- 8
         run: sh scripts/uninstall/main.sh --yes || true
+
+# ======== 노트 ========
+# 1 실행 조건 paths를 앵커로 공유
+#   설명: push와 pull_request가 같은 paths 목록(*e2e-relevant-paths)을 쓴다. 설치 동작을 바꿀 수 있는 파일(scripts, install.sh, uninstall.sh, .tool-versions, 이 워크플로)만 실제 macOS 러너를 돌린다.
+#   관련: TASK-85
+# 2 값싼 정적 검사를 비싼 실기 잡 앞에
+#   설명: Homebrew/asdf 설치가 필요 없는 ubuntu 잡이라 몇 초 안에 하드코딩 회귀를 잡는다.
+#   관련: scripts/lint/check-hardcoded-paths.sh, decision-7, TASK-125.3
+# 3 arm64와 Intel 두 실기 러너 매트릭스
+#   설명: macos-15(arm64)와 macos-15-intel을 fail-fast 없이 둘 다 돌려, Homebrew 접두사가 다른 두 아키텍처를 모두 검증한다.
+#   관련: TASK-34, TASK-35, lt_homebrew_prefix (scripts/lib.sh)
+# 4 설치기를 실제로 실행
+#   설명: mock이 아닌 깨끗한 러너에서 전체 phase를 돌리는 핵심 단계. 대화형 프롬프트가 없도록 --all --yes를 준다.
+#   관련: TASK-6, scripts/install/main.sh
+# 5 Homebrew가 없는 상태에서의 부트스트랩 검증
+#   설명: Homebrew를 먼저 완전히 지운 뒤 설치기가 스스로 부트스트랩하는지 본다.
+#   관련: TASK-20, scripts/install/01_bootstrap_asdf.sh
+# 6 git이 없을 때 curl|sh가 깔끔히 실패하는지
+#   설명: PATH에서 git만 뺀 디렉터리를 만들어 install.sh의 git 필요 검사를 시험한다. 비정상 종료와 안내 메시지를 둘 다 확인한다.
+#   관련: TASK-31, install.sh
+# 7 중간 종료 뒤 재실행이 막히지 않는지
+#   설명: 5단계 중간에 설치기를 죽이고 다시 실행한다. 잠금이 풀리고 일부만 끝난 상태에서도 이어서 성공해야 한다.
+#   관련: TASK-32, TASK-90, run_phase (scripts/lib.sh)
+# 8 정리 단계는 앞 단계 실패와 무관하게 실행
+#   설명: 깨끗한 러너를 재사용하지는 않지만, 실패해도 제거 경로를 한 번 더 시험한다.

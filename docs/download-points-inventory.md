@@ -1,3 +1,12 @@
+---
+title: download-points-inventory
+description: 저장소의 모든 원격 다운로드·설치 지점을 검증 수준과 하드닝 대상 여부로 분류한 전수 목록
+authors: [coralstay]
+license: AGPL-3.0-only
+status: draft
+created_date: '2026-11-06'
+updated_date: '2026-11-06'
+---
 # 저장소 내 다운로드/설치 지점 전수 매핑 (TASK-116.2)
 
 TASK-116.1([download-integrity-techniques.md](download-integrity-techniques.md))에서 정리한

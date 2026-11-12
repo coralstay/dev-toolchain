@@ -1,0 +1,1 @@
+{"include": ["**"], "exclude": ["**/README.md", "**/CHANGELOG.md", "CLAUDE.md", ".claude/**", "backlog/**", ".opensource/**", "contents/**", "content_data/**", "docs/shell-style-guide.md"]}

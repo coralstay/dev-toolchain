@@ -1,4 +1,13 @@
 #!/usr/bin/env sh
+# ---
+# title: 05_purge_asdf_core
+# description: 설치 전 상태 스냅샷을 확인해 asdf 본체와 데이터 디렉터리를 조건부로 삭제하는 제거 5단계 스크립트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # Removes asdf itself and its data directory. Only ever touches the user's
 # *global* ~/.tool-versions — never this repo's own .tool-versions, which is
 # a tracked project file, not machine state.
@@ -30,7 +39,7 @@ if brew list asdf >/dev/null 2>&1; then
   # (pre-dates this feature, or --dry-run install) is indistinguishable from
   # "don't know" and treated the same as "true" — safe-by-default, same as
   # the data-dir check (TASK-144).
-  if [ "$(lt_prior_state_get asdf_preexisting || true)" = "false" ]; then
+  if [ "$(lt_prior_state_get asdf_preexisting || true)" = "false" ]; then  # ---- 1
     log "Uninstalling asdf (Homebrew) ..."
     if run brew uninstall asdf; then
       lt_report removed "asdf (Homebrew)"
@@ -50,7 +59,7 @@ fi
 # uses, via lt_asdf_data_dir()) instead of always assuming the default — a
 # user who installed with a custom ASDF_DATA_DIR would otherwise have their
 # real data directory silently left behind (TASK-70).
-TARGET_ASDF_DATA_DIR="$(lt_asdf_data_dir)"
+TARGET_ASDF_DATA_DIR="$(lt_asdf_data_dir)"  # ---- 2
 readonly TARGET_ASDF_DATA_DIR
 
 if [ -d "$TARGET_ASDF_DATA_DIR" ]; then
@@ -71,7 +80,7 @@ if [ -d "$TARGET_ASDF_DATA_DIR" ]; then
   if [ "$(lt_prior_state_get asdf_data_dir_preexisting || true)" \
     = "false" ]; then
     log "Removing $TARGET_ASDF_DATA_DIR ..."
-    run rm -rf "$TARGET_ASDF_DATA_DIR"
+    run rm -rf "$TARGET_ASDF_DATA_DIR"  # ---- 3
     lt_report removed \
       "$TARGET_ASDF_DATA_DIR (entire asdf data dir: installs, plugins, shims)"
   else
@@ -90,7 +99,7 @@ if [ -f "$HOME/.tool-versions" ]; then
   # back to) — NOT $REPO_ROOT/.tool-versions, which is a file tracked in
   # this git repo and not something an uninstaller should ever delete.
   log "Removing $HOME/.tool-versions ..."
-  run rm -f "$HOME/.tool-versions"
+  run rm -f "$HOME/.tool-versions"  # ---- 4
   lt_report removed "$HOME/.tool-versions"
 fi
 
@@ -108,4 +117,20 @@ fi
 # either. A failed/interrupted uninstall (this phase or an earlier one)
 # never reaches this line, so decision-6's original concern — a retry
 # needing the snapshot still there — is unaffected.
-[ "$DRY_RUN" = "true" ] || rm -f "$LT_PRIOR_STATE_FILE"
+[ "$DRY_RUN" = "true" ] || rm -f "$LT_PRIOR_STATE_FILE"  # ---- 5
+
+# ======== 노트 ========
+# 1 brew uninstall asdf도 스냅샷으로 게이트
+#   설명: 설치 전부터 있던 Homebrew asdf를 지우지 않는다. 스냅샷을 확인할 수 없으면 건너뛴다.
+#   관련: TASK-144, decision-6
+# 2 삭제 대상은 실제 데이터 디렉터리
+#   설명: ASDF_DATA_DIR 재정의를 존중하고 $HOME/.asdf를 하드코딩하지 않는다.
+#   관련: TASK-70, lt_asdf_data_dir (scripts/lib.sh)
+# 3 가장 파괴적인 줄
+#   설명: 설치 전 스냅샷이 "원래 없었다"고 말할 때만 도달한다. 확인 불가나 이미 있던 경우는 else 분기에서 건너뛴다.
+#   관련: TASK-124, decision-6
+# 4 전역 ~/.tool-versions만 지운다
+#   설명: 저장소 안의 .tool-versions는 추적되는 프로젝트 파일이지 머신 상태가 아니므로 절대 건드리지 않는다.
+# 5 마지막 phase에서 스냅샷 삭제
+#   설명: 앞의 모든 명령이 set -eu를 통과했을 때만 도달하므로, 중간에 실패한 제거는 재시도에 스냅샷이 남는다. dry-run은 실제 상태를 건드리지 않았으니 지우지 않는다.
+#   관련: decision-8, TASK-139

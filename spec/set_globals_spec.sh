@@ -1,3 +1,12 @@
+# ---
+# title: set_globals_spec
+# description: 06_set_globals.sh의 로컬 스코프 핀 기록과 전역 기본 동작을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for scripts/install/06_set_globals.sh's LOCAL-scope pin
 # tracking (TASK-83): pinning locally must record the target directory in
@@ -25,7 +34,7 @@ Describe 'scripts/install/06_set_globals.sh'
   BeforeEach 'setup'
   AfterEach 'cleanup'
 
-  Describe 'local scope'
+  Describe 'local scope'  # ---- 1
     It 'records the target directory in the local-pins file'
       printf '# scope: local %s\npython 3.12.13\n' "$target_dir" \
         > "$config_file"
@@ -84,3 +93,8 @@ Describe 'scripts/install/06_set_globals.sh'
     End
   End
 End
+
+# ======== 노트 ========
+# 1 로컬 핀 기록 쓰기 쪽
+#   설명: 로컬 고정이 $ASDF_DATA_DIR의 핀 파일에 디렉터리를 기록하고, dry-run과 중복은 기록하지 않는지 확인한다.
+#   관련: TASK-83, spec/uninstall_runtimes_spec.sh

@@ -1,3 +1,12 @@
+# ---
+# title: spec_helper
+# description: 모든 shellspec 스펙이 공유하는 전역 설정과 헬퍼를 두는 파일
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=sh
 
 # Defining variables and functions here will affect all specfiles.

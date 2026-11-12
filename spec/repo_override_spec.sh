@@ -1,3 +1,12 @@
+# ---
+# title: repo_override_spec
+# description: LANGTOOLCHAIN_REPO_URL·BRANCH 재정의와 고정 clone 동작을 검증하는 shellspec 회귀 테스트
+# authors: [coralstay]
+# license: AGPL-3.0-only
+# status: draft
+# created_date: '2026-11-06'
+# updated_date: '2026-11-06'
+# ---
 # shellcheck shell=bash
 # Regression tests for LANGTOOLCHAIN_REPO_URL/LANGTOOLCHAIN_BRANCH
 # (TASK-117.6) and, by extension, the pinned-fetch mechanism itself
@@ -20,7 +29,7 @@
 # the same branch a real curl|sh invocation would - the local-clone
 # shortcut is skipped and the fixture repo actually gets fetched over
 # clone_pinned().
-Describe 'LANGTOOLCHAIN_REPO_URL / LANGTOOLCHAIN_BRANCH override (TASK-117.6)'
+Describe 'LANGTOOLCHAIN_REPO_URL / LANGTOOLCHAIN_BRANCH override (TASK-117.6)'  # ---- 1
   # build_fixture_repo: a throwaway git repo with two commits - an "old"
   # one with no scripts/*/main.sh (so execing into it fails loudly and
   # distinctly), and a "new" one whose stub main.sh just echoes a marker
@@ -98,7 +107,7 @@ End
 # DNS/TCP/TLS handshake blackhole - no real network used) still makes the
 # whole `curl | sh` path fail well inside the 3-attempt retry loop's total
 # budget, instead of hanging for real.
-Describe 'clone_pinned() fetch timeout (TASK-145.3, decision-10)'
+Describe 'clone_pinned() fetch timeout (TASK-145.3, decision-10)'  # ---- 2
   # A blackholed `git fetch` that's never killed would hang the full 30s
   # LANGTOOLCHAIN_CLONE_TIMEOUT default on every one of the retry loop's 3
   # attempts (90s+, plus its 5s/10s backoff sleeps) before ever failing.
@@ -152,3 +161,11 @@ FAKE_GIT
     The variable failed_fast should eq 'true'
   End
 End
+
+# ======== 노트 ========
+# 1 재정의 경로와 핀 고정 메커니즘 시험
+#   설명: 로컬 bare 저장소로 clone_pinned()의 SHA 가져오기를 실제로 실행해 확인한다.
+#   관련: TASK-117.1, TASK-117.6, install.sh, uninstall.sh
+# 2 fetch 타임아웃
+#   설명: 멈추는 fetch가 재시도 예산 안에서 실패로 끝나는지, 무한 대기하지 않는지 확인한다.
+#   관련: TASK-145.3, decision-10
