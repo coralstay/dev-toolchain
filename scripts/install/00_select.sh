@@ -135,14 +135,6 @@ write_with_scope() {
   { scope_line; cat "$1"; } > "$2"
 }
 
-# Probe for a controlling terminal. `true < /dev/tty` tries to open
-# /dev/tty for reading and does nothing with it; if that open fails (no
-# tty — e.g. cron, CI, or this being piped through something with no
-# terminal at all), the `||` sets INTERACTIVE=false. Uses `true`, not `:` —
-# POSIX mandates that a redirection error on a *special* built-in (`:` is
-# one) unconditionally kills a non-interactive shell script, bypassing
-# `set -e`/`||` entirely; `true` is an ordinary command, so its redirection
-# failure is just a normal non-zero status the `||` can catch.
 INTERACTIVE=true
 { true < /dev/tty; } 2>/dev/null || INTERACTIVE=false  # ---- 1
 
@@ -214,11 +206,6 @@ _LT_RAW_STTY_FILE="${TMPDIR:-/tmp}/langtoolchain-raw-stty.$$"
 #   override the script's actual exit status).
 #######################################
 lt_restore_raw_stty() {  # ---- 3
-  # Always exits 0 - this runs from the EXIT trap, where a failing command
-  # would otherwise override the script's actual exit status (the whole
-  # point of `$SUCCESS || rm -f "$OUT_FILE"` right after it is to preserve
-  # that status, which a failure here would clobber). The common case -
-  # nothing was ever put into raw mode - is not an error, just a no-op.
   if [ -n "$_LT_RAW_STTY" ]; then
     stty "$_LT_RAW_STTY" < /dev/tty 2>/dev/null || true
   elif [ -f "$_LT_RAW_STTY_FILE" ]; then
@@ -622,35 +609,11 @@ ask_version() {  # ---- 5
 # $TMPDIR on macOS) with a random unique suffix.
 OUT_FILE="$(mktemp -t langtoolchain-selection)"
 readonly OUT_FILE
-# Clean up on every exit path except the one deliberate success below.
-# Emptiness alone isn't a reliable signal here: the interactive scope
-# prompt can `die` (e.g. on an invalid --local directory) *after*
-# language selections are already written to $OUT_FILE, which would look
-# "successful" to an emptiness check and leak the file. SUCCESS is only
-# ever set true right before the two real `echo "$OUT_FILE"` handoffs.
 SUCCESS=false  # ---- 6
-# The version-list circuit breaker marker (m-15/TASK-129.2, decision-17,
-# see LT_VERSION_LIST_UNREACHABLE_FILE's own comment in lib.sh) is cleaned
-# up unconditionally, unlike $OUT_FILE - it's scoped to this one process
-# ($$-named) regardless of whether the run ends up succeeding, so there's
-# nothing to preserve on any exit path. A no-op `rm -f` if ask_version()
-# was never called at all (--all/non-interactive) or never hit a fetch
-# failure.
 trap 'lt_restore_raw_stty; $SUCCESS || rm -f "$OUT_FILE"; \
   rm -f "$LT_VERSION_LIST_UNREACHABLE_FILE"' EXIT  # ---- 7
 
-# Non-interactive session, or the caller explicitly asked for everything:
-# skip the language menu entirely and use the default config as-is. Scope
-# still comes from --local if given; otherwise there's no tty to ask, so
-# it defaults to global (scope_line() already does this when SCOPE="").
 if ! $INTERACTIVE || $SELECT_ALL; then  # ---- 8
-  # Only announce this when it's the SILENT fallback (no tty, no --all) -
-  # a caller who explicitly passed --all already knows what they asked for.
-  # Without this, a CI run with no flags at all installs every language with
-  # no indication that's what just happened (found during a UX pass,
-  # m-6/TASK-95.1). To stderr, not tty_out - there may be no /dev/tty to
-  # write to at all in this exact branch, and stdout is reserved for the
-  # OUT_FILE path handoff below.
   if ! $INTERACTIVE && ! $SELECT_ALL; then
     echo "No controlling terminal detected - installing every language" \
       "in $DEFAULT_CONFIG (same as --all)." >&2
@@ -714,11 +677,6 @@ for each_plugin in $ALL_COMPANIONS; do
   lt_resolve_version_list "$each_plugin" > /dev/null 2>&1
 done
 
-# lt_forget_language_lines <plugin> (TASK-165, decision-21): remove
-# <plugin>'s line (and its companion's, if any) from $OUT_FILE. Used only
-# when the user backs up into a language that was already answered, so
-# lt_offer_language() can re-record it without leaving a stale duplicate
-# line from the answer being reconsidered.
 #######################################
 # Remove a plugin's (and its companion's) recorded line from $OUT_FILE.
 # Globals:
@@ -818,12 +776,6 @@ lt_offer_language() {
   return 0
 }
 
-# Language list as one flat positional-parameter list ("plugin1" "ver1"
-# "plugin2" "ver2" ...) instead of a stream read in place (m-8's original
-# `while read <&3` loop) - TASK-165/decision-21's back-navigation needs to
-# step the index backward, which a single forward-only stream read can't
-# do. Built inside a function so `set --` only touches this function's own
-# "$@", not this script's own CLI-argument positional parameters.
 #######################################
 # Walk the candidate language list, offering each in turn; supports going
 # back to the previous language (decision-21).
@@ -895,7 +847,6 @@ while read -r plugin version; do
 done < "$OUT_FILE"
 tty_out ""
 
-# Ask where to pin these versions, unless --local[=DIR] already decided it.
 if [ -z "$SCOPE" ]; then  # ---- 11
   if [ "$(lt_arrow_menu "Pin these versions:" 1 "Globally" \
     "Only in this directory")" = "2" ]; then
@@ -929,12 +880,12 @@ echo "$OUT_FILE"
 
 # ======== 노트 ========
 # 1 제어 터미널 탐지
-#   설명: /dev/tty를 열 수 있는지 시험한다. :(특수 내장)가 아니라 true를 쓰는 이유는, 특수 내장의 리다이렉션 오류가 비대화형 셸을 set -e나 ||와 무관하게 죽이기 때문이다. 터미널이 없으면 비대화형 경로로 간다.
+#   설명: `true < /dev/tty`로 /dev/tty를 읽기용으로 열어만 보고 아무것도 하지 않는다. 열기가 실패하면(터미널 없음 — 예: cron, CI, 터미널 없는 곳을 거친 파이프) `||`가 INTERACTIVE=false로 만들고, 그러면 비대화형 경로로 간다. :(특수 내장)가 아니라 true를 쓰는 이유는, POSIX상 특수 내장의 리다이렉션 오류는 비대화형 셸 스크립트를 set -e나 ||와 무관하게 무조건 죽이는 반면 true는 일반 명령이라 리다이렉션 실패가 그냥 0이 아닌 상태값이 되어 ||가 잡을 수 있기 때문이다.
 # 2 대화 출력은 stdout이 아니라 /dev/tty로
 #   설명: 이 스크립트의 stdout에는 최종 선택 파일 경로 한 줄만 나와야 한다. 메뉴·프롬프트를 tty로 보내야 호출자가 $(...)로 안전하게 받는다.
 #   관련: scripts/install/main.sh (SELECTION_FILE)
 # 3 raw 모드 복원
-#   설명: 방향키 메뉴가 터미널을 raw로 바꾼 채 종료되면 사용자 쉘이 망가진다. EXIT trap이 이 함수를 불러 항상 원래 설정으로 되돌린다.
+#   설명: 방향키 메뉴가 터미널을 raw로 바꾼 채 종료되면 사용자 쉘이 망가진다. EXIT trap이 이 함수를 불러 항상 원래 설정으로 되돌린다. 항상 0으로 끝나야 한다: EXIT trap 안에서 실패하는 명령은 스크립트의 실제 종료 상태를 덮어쓰는데, 바로 뒤의 `$SUCCESS || rm -f "$OUT_FILE"`이 보존하려는 것이 그 상태이기 때문이다. raw 모드에 들어간 적이 없는 흔한 경우는 오류가 아니라 아무 일도 안 하는 no-op이다.
 # 4 방향키 메뉴용 raw 모드 진입
 #   설명: 한 글자씩 키를 읽기 위해 canonical·echo를 끈다. 진입 전에 stty -g로 원래 상태를 저장해 두며, 어떤 종료 경로에서도 복원돼야 한다.
 #   관련: lt_arrow_menu, lt_restore_raw_stty
@@ -943,18 +894,18 @@ echo "$OUT_FILE"
 #   설명: raw 모드가 가능하면 방향키 메뉴를, 아니면 숫자·버전 문자열을 타이핑하지 않는 후보 순회(walkthrough)로 내려간다. 첫 항목은 (default) 장식이 붙어 있어 실제 값으로 되돌려 출력한다.
 #   관련: TASK-168, decision-17, decision-22
 # 6 성공 경로에서만 선택 파일을 남긴다
-#   설명: 선택 파일이 비어 있는지가 아니라 이 플래그로 성공을 판정한다. 범위 입력 오류 등 언어 선택 후 die되는 경로에서 파일이 새는 것을 막는다.
+#   설명: 선택 파일이 비어 있는지가 아니라 이 플래그로 성공을 판정한다. 범위 입력 오류 등 언어 선택 후 die되는 경로에서 파일이 새는 것을 막는다. 비어 있는지 여부는 믿을 수 없다: 대화형 스코프 프롬프트가 잘못된 --local 디렉터리 등으로 언어 선택이 $OUT_FILE에 이미 쓰인 뒤 die할 수 있어, 비어 있는지만 보면 성공으로 보이고 파일이 샌다. 그래서 정상 종료 경로를 제외한 모든 종료 경로에서 지우며, SUCCESS는 실제 `echo "$OUT_FILE"` 핸드오프 두 곳 직전에서만 true가 된다.
 # 7 EXIT trap: 선택 파일과 서킷브레이커 마커 정리
-#   설명: $$ 이름의 버전 목록 접속 불가 마커는 성공 여부와 무관하게 항상 지운다. trap 본문이 여러 줄이라 이 줄이 trap의 끝이다.
-#   관련: decision-17, TASK-129.2, LT_VERSION_LIST_UNREACHABLE_FILE (scripts/lib.sh)
+#   설명: 버전 목록 서킷브레이커 마커(m-15)는 $OUT_FILE과 달리 무조건 지운다. 이 프로세스($$ 이름) 전용이라 실행이 성공하든 말든 어느 종료 경로에서도 보존할 것이 없기 때문이다. ask_version()이 한 번도 불리지 않았거나(--all/비대화형) 목록 가져오기 실패가 없었다면 `rm -f`는 no-op이다. trap 본문이 여러 줄이라 이 줄이 trap의 끝이다.
+#   관련: decision-17, TASK-129.2, m-15, LT_VERSION_LIST_UNREACHABLE_FILE (scripts/lib.sh)
 # 8 비대화형 또는 --all이면 메뉴 없이 기본 설정 사용
-#   설명: 터미널이 없으면 .tool-versions의 모든 언어를 그대로 설치하며, 플래그 없이 그렇게 된 경우만 stderr로 알린다. stdout은 파일 경로 핸드오프 전용이다.
-#   관련: TASK-95.1
+#   설명: 비대화형이거나 호출자가 --all로 전부 달라고 했으면 언어 메뉴를 건너뛰고 기본 설정을 그대로 쓴다. 스코프는 --local이 있으면 그대로 따르고, 없으면 물어볼 tty가 없으므로 global이 된다(SCOPE=""일 때 scope_line()이 이미 그렇게 한다). 터미널이 없으면 .tool-versions의 모든 언어를 그대로 설치하며, 플래그 없이 그렇게 된 조용한 폴백(tty 없음, --all 아님)만 안내한다. --all을 직접 준 호출자는 이미 알고 있기 때문이며, 안내가 없으면 플래그 없는 CI 실행이 모든 언어를 설치하고도 아무 표시가 없다(UX 점검 중 발견, m-6). 안내는 tty_out이 아니라 stderr로 보낸다: 이 분기에서는 /dev/tty 자체가 없을 수 있고 stdout은 OUT_FILE 경로 핸드오프 전용이기 때문이다.
+#   관련: TASK-95.1, m-6
 # 9 뒤로가기: 이전 언어 선택 지우기
-#   설명: 선택 파일에서 해당 언어와 그 동반 도구 줄을 걸러 낸다. 뒤로가기는 언어 단위로만 지원한다.
-#   관련: decision-21
+#   설명: 선택 파일($OUT_FILE)에서 해당 언어와 그 동반 도구 줄을 걸러 낸다. 사용자가 이미 답한 언어로 뒤로 돌아갔을 때만 쓰이며, lt_offer_language()가 다시 기록할 때 되짚는 이전 답의 낡은 중복 줄이 남지 않게 한다. 뒤로가기는 언어 단위로만 지원한다.
+#   관련: decision-21, TASK-165
 # 10 언어별 질의 루프(뒤로가기 포함)
-#   설명: 동반 도구는 주 언어 질의에 포함시키고 목록에서는 건너뛴다. 거절 코드가 돌아오면 인덱스를 하나 줄여 이전 언어를 다시 묻는다.
-#   관련: decision-21
+#   설명: 동반 도구는 주 언어 질의에 포함시키고 목록에서는 건너뛴다. 거절 코드가 돌아오면 인덱스를 하나 줄여 이전 언어를 다시 묻는다. 언어 목록은 스트림을 제자리에서 읽는 방식(m-8의 원래 `while read <&3` 루프)이 아니라 평평한 위치 인자 목록("plugin1" "ver1" "plugin2" "ver2" ...)으로 만든다: 뒤로가기는 인덱스를 거꾸로 움직여야 하는데 앞으로만 가는 스트림 읽기로는 못 하기 때문이다. 함수 안에서 만들어 `set --`가 이 함수의 "$@"만 건드리고 스크립트 자신의 CLI 인자는 건드리지 않게 한다.
+#   관련: decision-21, TASK-165, m-8
 # 11 스코프를 아직 모르면 대화형으로 묻는다
-#   설명: --local 플래그로 이미 정했다면 건너뛴다. 로컬이면 디렉터리를 확인하며, 존재하지 않는 경로는 die한다.
+#   설명: 이 버전들을 어디에 고정할지 묻되, --local[=DIR]로 이미 정했다면 건너뛴다. 로컬이면 디렉터리를 확인하며, 존재하지 않는 경로는 die한다.
