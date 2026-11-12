@@ -35,20 +35,8 @@ DRY_RUN="${DRY_RUN:-false}"
 # merges cleanly. This section is data only — it holds no control flow,
 # and no phase script's own logic is meant to move here.
 
-# Homebrew formulas needed to compile Python's (and friends') C extensions.
-# Single source of truth for scripts/install/03_install_system_deps.sh,
-# scripts/uninstall/04_remove_system_deps.sh, and ensure_build_flags() below
-# (which only needs the openssl/readline/sqlite3/zlib subset — see there).
 readonly LT_BUILD_DEPS="openssl@3 readline sqlite3 xz zlib tcl-tk"  # ---- 1
 
-# lt_homebrew_prefix (TASK-61): prints Homebrew's install prefix for the
-# CPU architecture this script is running on right now. Apple Silicon and
-# Intel Macs use two different fixed Homebrew locations; every script that
-# needs a Homebrew-rooted path (the brew binary itself, a keg-only
-# formula's bin dir, etc.) should compute it by calling this function
-# instead of re-typing its own `uname -m` case — that duplication is what
-# let the sqlite PATH line go stale to an Apple-Silicon-only path on Intel
-# Macs.
 #######################################
 # Print Homebrew's install prefix for the current CPU architecture.
 # Globals:
@@ -82,12 +70,6 @@ lt_homebrew_prefix() {  # ---- 2
 readonly LT_ASDF_DATA_DIR_NAME=".asdf"
 readonly LT_ASDF_DATA_DIR_DEFAULT="$HOME/$LT_ASDF_DATA_DIR_NAME"
 
-# lt_asdf_data_dir: prints the effective asdf data directory — a live
-# ASDF_DATA_DIR override if the caller's environment already has one, else
-# the default above. Split out of ensure_asdf_on_path() (which also exports
-# it and touches PATH) so callers that only need the *value* — teardown
-# checks that must NOT put asdf back on PATH — don't have to re-type the
-# same "${ASDF_DATA_DIR:-$LT_ASDF_DATA_DIR_DEFAULT}" fallback themselves.
 #######################################
 # Print the effective asdf data directory.
 # Globals:
@@ -135,24 +117,8 @@ $LT_RC_FILE_BASH_INTERACTIVE"
 # $ASDF_DATA_DIR` deletes this file too, so there's nothing extra to clean up.
 readonly LT_LOCAL_PINS_FILE_NAME="langtoolchain-local-pins"
 
-# LT_LOCK_DIR (TASK-84): a single lock shared by install/main.sh and
-# uninstall/main.sh, so an install can never run concurrently with another
-# install, an uninstall, or itself — all of them mutate the same asdf/
-# Homebrew state. `mkdir` is used as the lock primitive (not `flock`, which
-# macOS doesn't ship) because directory creation is atomic on every real
-# filesystem: at most one concurrent `mkdir LT_LOCK_DIR` can succeed.
-# `${LT_LOCK_DIR:-default}`, same override pattern as ASDF_DATA_DIR below:
-# lets a test (or an unusual caller) point this somewhere other than the
-# real shared path without that being a special case in acquire_lock itself.
 LT_LOCK_DIR="${LT_LOCK_DIR:-${TMPDIR:-/tmp}/langtoolchain.lock}"  # ---- 4
 
-# LT_REPORT_FILE (m-10/TASK-107): a human-readable audit trail of every
-# real change install/uninstall made - what got installed/removed/modified
-# and where. Deliberately under $HOME directly, not $ASDF_DATA_DIR (unlike
-# LT_LOCAL_PINS_FILE_NAME above) - a `rm -rf $ASDF_DATA_DIR` during
-# uninstall would otherwise erase the very history someone might want to
-# check right before/after running it. Override-able like LT_LOCK_DIR, so
-# tests can point it at a scratch file instead of a real $HOME.
 LT_REPORT_FILE="${LT_REPORT_FILE:-$HOME/.langtoolchain-report.log}"  # ---- 5
 
 # lt_report <action> <detail>: appends one line to LT_REPORT_FILE. Skipped
@@ -178,39 +144,9 @@ lt_report() {
     >> "$LT_REPORT_FILE"
 }
 
-# LT_PRIOR_STATE_FILE (m-13/TASK-123, decision-6): records whether asdf/its
-# data dir/any plugins already existed on this machine BEFORE this tool
-# touched anything, so uninstall (TASK-124) can avoid deleting state it
-# didn't create. Deliberately a separate file from LT_REPORT_FILE, not
-# just another line in it: that one is a human-readable audit log
-# (lt_report's timestamped lines); this one is parsed by uninstall to make
-# an actual delete/skip decision, so it needs a stable, parse-only format
-# (see lt_snapshot_prior_asdf_state/lt_prior_state_get below) instead of a
-# log line's free-text "detail" field. Same $HOME-not-$ASDF_DATA_DIR
-# placement as LT_REPORT_FILE and for the identical reason: a `rm -rf
-# $ASDF_DATA_DIR` during uninstall must never delete the very file
-# uninstall is about to consult to decide whether to run that rm -rf.
 LT_PRIOR_STATE_FILE="${LT_PRIOR_STATE_FILE:-$HOME/\
 .langtoolchain-prior-asdf-state}"  # ---- 6
 
-# lt_snapshot_prior_asdf_state: writes LT_PRIOR_STATE_FILE with whether asdf
-# (brew list asdf), its data directory (lt_asdf_data_dir), and any asdf
-# plugins already existed, as simple `key=value` lines - not the
-# lt_report()-style timestamped log format, since this file's only reader is
-# uninstall's own conditional logic (TASK-124.1), not a human. See decision-6
-# for the full format writeup.
-#
-# Must run before ANY phase that could itself install asdf or create its
-# data dir (01_bootstrap_asdf.sh) - callers are responsible for that
-# ordering (install/main.sh calls this right after language selection,
-# before the phase loop starts).
-#
-# Only ever writes once: if LT_PRIOR_STATE_FILE already exists, a later
-# call is necessarily a re-run of install (Ctrl-C recovery, adding more
-# languages, etc.) where asdf/its data dir may now contain state THIS tool
-# itself created in an earlier run - overwriting the file at that point
-# would corrupt the "before this tool touched anything" baseline uninstall
-# depends on.
 #######################################
 # Snapshot whether asdf/its data dir/plugins pre-existed before this tool.
 # Globals:
@@ -283,38 +219,6 @@ lt_prior_state_get() {
   printf '%s\n' "${line#*=}"
 }
 
-# lt_env_var_defs [java_hook_file] (TASK-64): prints one line per rc-file
-# entry this tool's installer manages, formatted
-# "<search-pattern>|||<placement>|||<line-to-write>" (triple-pipe
-# separators, since none of the fields contain them). Bash 3.2 has no
-# associative arrays, so this is a flat list of delimited lines, meant to
-# be read with `while IFS= read -r def; do ... done < <(lt_env_var_defs
-# ...)` — the same shape each_tool() already uses for .tool-versions
-# lines, just with a different separator since these lines contain spaces
-# of their own.
-#
-# install/04_configure_shell_env.sh writes each <line-to-write>, guarded
-# by <search-pattern>, calling prepend_env_var or append_env_var depending
-# on <placement> ("prepend" or "append") — the placement decision lives
-# here as data, not as a string the caller has to recognize, so it can't
-# go stale independently of the pattern it applies to.
-# uninstall/03_clean_env_vars.sh only needs the <search-pattern> field —
-# it turns each one into a `sed -E -e '/pattern/d'` expression. Both read
-# from this one function instead of each independently retyping the same
-# patterns — that exact kind of drift is what caused TASK-56 (BSD sed
-# never actually deleting the java-hook line, because uninstall's own copy
-# of the pattern used a GNU-only regex extension the install side never
-# had to match against). To add a new rc line, add one entry here; both
-# install and uninstall pick it up automatically.
-#
-# The java-hook line's content depends on which shell's variant is in use
-# (only install knows this, from the rc file it picked), so the caller
-# passes it in as $1; uninstall doesn't pass anything, since it only ever
-# reads the search-pattern field of that entry, never the content.
-#
-# "brew shellenv" is the only "prepend" entry — it must land ahead of the
-# asdf shim PATH line, or a same-named Homebrew formula could shadow the
-# asdf shim (see prepend_env_var's own comment). Everything else appends.
 #######################################
 # Print the rc-file entries this tool's installer manages, as data lines.
 # Globals:
@@ -394,9 +298,6 @@ step() { printf '\n== %s ==\n' "$*"; }
 #######################################
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-# run <cmd...>: the dry-run gate. Every command that actually mutates the
-# system (brew install, asdf install, rm -rf, ...) goes through this
-# instead of being called directly.
 #######################################
 # Run <cmd...>, or describe it instead when DRY_RUN is set.
 # Globals:
@@ -422,16 +323,6 @@ run() {  # ---- 9
   fi
 }
 
-# retry <max_attempts> <delay_seconds> <cmd...> (TASK-88): runs <cmd...>,
-# and if it fails, retries with exponential backoff (delay doubles each
-# time) up to <max_attempts> total attempts. Meant for genuinely transient
-# failures (a network blip mid-download) — not a substitute for fixing a
-# real error, which is why it still returns failure (not `|| true`) once
-# attempts are exhausted, so the caller decides what that means.
-#
-# Compose with run(): `retry 3 5 run asdf install "$plugin" "$version"`.
-# Under DRY_RUN, run() prints and returns success on the first call, so
-# retry's own loop exits immediately too — no repeated dry-run output.
 #######################################
 # Run <cmd...>, retrying with exponential backoff on failure.
 # Globals:
@@ -463,51 +354,6 @@ retry() {  # ---- 10
   done
 }
 
-# lt_run_with_timeout <seconds> <cmd> [args...] (TASK-138.1, decision-10):
-# runs <cmd...> under a hard wall-clock timeout, killing it if it hasn't
-# finished after <seconds>. This exists because a "started transfer that's
-# now slow" guard (curl --max-time, git's http.lowSpeedLimit/lowSpeedTime -
-# see lt_upstream_latest_version's python branch below) never even engages
-# when the connection blackholes BEFORE any bytes move (DNS/TCP/TLS
-# handshake hang) - decision-10 confirms no POSIX-safe fix for that exists
-# inside curl/git themselves. `timeout(1)`/`gtimeout(1)` were considered and
-# rejected too (decision-10): neither ships on a fresh Mac before Homebrew
-# installs GNU coreutils, and this needs to run at phase 0, before Homebrew
-# is guaranteed to exist. So this is built from POSIX sh primitives already
-# used elsewhere in this file - background job + `wait`, same shape as
-# run_phase() above: run <cmd...> in the background, race it against a
-# watchdog subshell that sleeps <seconds> and kills it if it's still alive.
-#
-# A killed-or-not marker file (not a variable) carries the "did we have to
-# kill it" fact back out of the watchdog subshell - a background job is a
-# separate process, so any variable it set would vanish with it; a file is
-# the one thing both sides can see.
-#
-# <cmd...>'s stdout/stderr are captured to temp files rather than left
-# connected straight through to this function's own fds, and only `cat`
-# out afterward - deliberately, not just for convenience. If <cmd...>
-# itself spawns a child of its own (e.g. `git ls-remote` on an https:// URL
-# execs a `git-remote-https` helper to do the actual network work) and this
-# function kills only the single PID it tracked, that grandchild can be
-# left running as an orphan. A POSIX-portable way to reliably signal a
-# whole process tree at once (a job-control process-group kill) turned out
-# NOT to be one: `set -m` does make bash put each background job in its own
-# process group, but verified by hand that dash does not, so `kill -TERM
-# -"$cmd_pid"` would silently fail to reach anything under dash - not an
-# option in a codebase that has to run under both. Piping <cmd...>'s output
-# straight into a caller's own `$(...)` instead would hit exactly this: a
-# pipe's read side only sees EOF once EVERY process holding its write end
-# open has exited, so a lingering orphaned grandchild - still holding that
-# same fd - would keep the caller's `$(...)` blocked for the orphan's
-# entire remaining lifetime, regardless of how fast this function itself
-# gives up. A plain file has no such problem: reading one is never blocked
-# by some other process still holding it open for writing, so an orphan
-# left behind after the timeout can't hang this function's own caller even
-# though it may (rarely, harmlessly) still be running somewhere in the
-# background. The trade-off is buffering - a caller streaming this in real
-# time would now see nothing until <cmd...> finishes or is killed - but no
-# call site here needs that; every existing caller already fully captures
-# this kind of output via `$(...)` first anyway.
 #######################################
 # Run <cmd...> under a hard wall-clock timeout, killing it if it overruns.
 # Globals:
@@ -602,27 +448,6 @@ ensure_disk_space() {
 # kill it directly instead of leaving it to run to completion untouched.
 LT_CHILD_PID=""
 
-# run_phase <script>: runs a phase script and waits for it — but as a
-# backgrounded job + `wait`, not a plain synchronous `sh "$script"` call.
-# This matters for TASK-90: a signal for which a trap is registered does
-# NOT interrupt a shell blocked on a plain foreground command's exit —
-# POSIX shells only dispatch the trap once that command returns on its own,
-# which for a multi-minute `asdf install` mid-compile means Ctrl-C/SIGTERM
-# would sit unprocessed (and the lock unreleased) until the compile
-# finishes naturally. `wait` is different: POSIX explicitly guarantees it
-# returns early the moment a trapped signal arrives, letting the trap fire
-# immediately. (Found via a real CI failure, not by inspection: the TASK-32
-# "kill mid-install then re-run" job failed with "another install appears
-# to be running" — the first run's lock was still held, uncollected, when
-# the second one started, because main.sh hadn't processed its own SIGTERM
-# yet.) Only the immediate child is targeted, not further descendants (e.g.
-# `asdf install`'s own compiler subprocesses) — sufficient to make the
-# *lock* release promptly, which is what re-running depends on; deeper
-# orphans left briefly behind (if any) aren't this process's to manage.
-# Returns the phase's own exit status (not just whatever the trailing
-# `LT_CHILD_PID=""` assignment would return, which is always 0) so a
-# failing phase under the caller's `set -eu` actually stops the run instead
-# of being silently treated as success.
 #######################################
 # Run a phase script as a backgrounded, waited-on child so signals
 # interrupt it promptly.
@@ -716,17 +541,6 @@ lt_die_if_lock_held() {
   fi
 }
 
-# acquire_lock (TASK-84): takes the exclusive lock at LT_LOCK_DIR so two
-# install/uninstall runs can never mutate asdf/Homebrew state at the same
-# time. `mkdir` either succeeds (lock acquired) or fails because the
-# directory already exists (someone else holds it) — nothing in between, so
-# this can't race. If it's already held, checks whether the PID recorded
-# inside it is still alive (`kill -0`, POSIX-specified, sends no signal):
-# a live PID means a real concurrent run, so this dies with a clear message;
-# a dead PID means whatever held the lock crashed/was killed before its own
-# `release_lock` trap could fire, so the stale lock is reclaimed instead of
-# permanently blocking every future run. Caller must `trap 'release_lock'
-# EXIT` (or fold it into an existing combined trap) right after calling this.
 #######################################
 # Take the exclusive install/uninstall lock at LT_LOCK_DIR.
 # Globals:
@@ -949,13 +763,6 @@ read_scope() {
   esac
 }
 
-# Modern Homebrew asdf (v0.16+, the Go rewrite) is a single binary with no
-# libexec/asdf.sh to source — shell integration is just putting
-# $ASDF_DATA_DIR/shims on PATH. Every phase that shells out to `asdf` or an
-# asdf shim calls this first, so no phase depends on another phase having
-# exported anything into this process already (main.sh runs each phase as
-# its own separate `bash` child process, so nothing carries over
-# automatically).
 #######################################
 # Export ASDF_DATA_DIR and put its shims directory on PATH for this process.
 # Globals:
@@ -982,17 +789,6 @@ ensure_asdf_on_path() {  # ---- 14
   esac
 }
 
-# ensure_brew_on_path: makes `brew` callable from *this* process, even if
-# Homebrew was only just installed moments ago by a DIFFERENT phase's
-# process (main.sh runs every phase as its own `bash` child, so nothing
-# exported by phase 01's Homebrew install carries over automatically).
-#
-# Homebrew's own installer never edits PATH itself — it prints an
-# `eval "$(brew shellenv)"` line for the user to add to their rc file by
-# hand, which only takes effect in brand-new shells. Since our own rc-file
-# write for that line (see 04_configure_shell_env.sh) doesn't help THIS
-# still-running install either, this falls back to Homebrew's two
-# fixed, architecture-specific install locations directly.
 #######################################
 # Make `brew` callable from this process, even if just installed.
 # Globals:
@@ -1015,17 +811,6 @@ ensure_brew_on_path() {  # ---- 15
   fi
 }
 
-# ensure_build_flags: re-exports the Homebrew build flags Python (and
-# friends) need to compile against keg-only openssl/readline/sqlite3/zlib.
-# Homebrew deliberately doesn't put keg-only formulas on PATH/in the
-# compiler's default search path, so without these exports `asdf install
-# python ...` fails to find OpenSSL/SQLite headers. Any phase that runs
-# `asdf install` calls this itself rather than trusting an earlier phase's
-# export to still be in scope (again: separate child processes).
-#
-# Of the full LT_BUILD_DEPS list, only these four (openssl, readline,
-# sqlite3, zlib) actually need compiler/linker flags — xz and tcl-tk don't,
-# so they're intentionally left out below.
 #######################################
 # Re-export the Homebrew build flags needed to compile against keg-only deps.
 # Globals:
@@ -1296,22 +1081,6 @@ lt_json_field() {
     sed -E "s/.*\"${prefix}([^\"]*)\"\$/\1/"
 }
 
-# lt_upstream_latest_version <plugin> (m-12/TASK-118 decision, decision-4):
-# fetches this plugin's latest stable version straight from that language's
-# own official distribution index/API - deliberately NOT via `asdf latest`/
-# `asdf list all` (see decision-4: those require the plugin to already be
-# added to asdf, which 00_select.sh can't guarantee at phase 0 - see
-# ask_version()'s own comment in scripts/install/00_select.sh). Every
-# branch below needs nothing but curl (or git, for python) and the network
-# - no asdf, no plugin - so it's safe to call directly from phase 0.
-#
-# Prints the version string on success. Returns 1 (nothing printed) on any
-# failure - missing curl, network/DNS failure, non-2xx response, empty or
-# unparseable body - so callers must always have a static fallback ready
-# (see lt_default_version below, the function every real call site uses).
-#
-# Same case-dispatch style as binary_for_plugin()/lt_companion_for_plugin()
-# above, for the same bash-3.2-has-no-associative-arrays reason.
 #######################################
 # Fetch a plugin's latest stable version from its official upstream index.
 # Globals:
@@ -2136,16 +1905,6 @@ lt_cache_version_list() {
 LT_VERSION_LIST_UNREACHABLE_FILE="${LT_VERSION_LIST_UNREACHABLE_FILE:-\
 ${TMPDIR:-/tmp}/langtoolchain-version-list-unreachable.$$}"
 
-# lt_resolve_version_list <plugin> (m-15/TASK-129.1, decision-17): the
-# list-shaped counterpart to lt_resolve_default_version() above - fresh
-# cache, else live fetch (cached on success), else failure. Unlike that
-# function, a total miss here prints nothing and returns 1 rather than
-# falling back to a static value - there is no static "full list" in
-# .tool-versions to fall back to (it only ever carries one version per
-# plugin), so a miss is purely the caller's problem. scripts/install/
-# 00_select.sh's ask_version() is the only caller today, and decision-17
-# covers how it handles a miss (a single-option menu offering just its own
-# already-resolved default, replacing the old free-text-input fallback).
 #######################################
 # Resolve a plugin's full version list: fresh cache, else live fetch.
 # Globals:
@@ -2330,58 +2089,114 @@ lt_render_version_table() {
 
 # ======== 노트 ========
 # 1 빌드 의존 Homebrew 포뮬러의 단일 출처
-#   설명: Python C 확장 컴파일에 필요한 포뮬러 목록. 설치 3단계, 제거 4단계, ensure_build_flags()가 모두 이 값 하나를 읽으므로 양쪽이 어긋나지 않는다.
+#   설명: Python(과 관련 런타임)의 C 확장 컴파일에 필요한 Homebrew 포뮬러 목록. 설치 3단계, 제거 4단계, ensure_build_flags()가 모두 이 값 하나를 읽으므로 양쪽이 어긋나지 않는다.
+#   단 ensure_build_flags()는 이 중 openssl/readline/sqlite3/zlib 부분집합만 쓴다(자세한 이유는 노트 16).
 #   관련: scripts/install/03_install_system_deps.sh, scripts/uninstall/04_remove_system_deps.sh
 #   개념: SSOT
 # 2 Homebrew 접두사는 CPU 아키텍처별로 한 곳에서 계산
 #   설명: Apple Silicon과 Intel의 Homebrew 경로가 다르다. 각 스크립트가 uname -m case를 다시 쓰다 sqlite PATH 줄이 Intel에서 낡았던 사고(TASK-61)를 막으려고 이 함수만 쓴다.
+#   현재 CPU 아키텍처 기준 Homebrew 설치 접두사를 출력하며, brew 바이너리나 keg-only 포뮬러의 bin 디렉터리처럼 Homebrew 기준 경로가 필요한 모든 스크립트는 자체 `uname -m` case를 다시 쓰지 말고 이 함수를 불러 계산한다.
+#   그 중복 때문에 sqlite PATH 줄이 Intel Mac에서 Apple Silicon 전용 경로로 낡았다.
 #   관련: TASK-61
 # 3 실제 asdf 데이터 디렉터리 값만 출력
 #   설명: ASDF_DATA_DIR 재정의가 있으면 그것, 없으면 기본 ~/.asdf. PATH를 건드리지 않아 제거 검증처럼 값만 필요한 호출자가 쓴다. 경로를 ".asdf"로 하드코딩하면 린트가 잡는다.
+#   ensure_asdf_on_path()에서 분리한 함수다. 그쪽은 값을 export하고 PATH까지 건드리므로, asdf를 PATH에 되돌려 놓으면 안 되는 정리(teardown) 검사처럼 값만 필요한 호출자가 같은 "${ASDF_DATA_DIR:-$LT_ASDF_DATA_DIR_DEFAULT}" 폴백을 다시 쓰지 않게 한다.
 #   관련: TASK-65, TASK-70, scripts/lint/check-hardcoded-paths.sh
 # 4 mkdir 기반 배타 잠금 경로
 #   설명: macOS에 flock이 없고 디렉터리 생성은 원자적이라 mkdir를 잠금 기본형으로 쓴다. 테스트가 경로를 바꿀 수 있게 환경변수로 덮어쓸 수 있다.
+#   install/main.sh와 uninstall/main.sh가 잠금 하나를 공유한다. 설치가 다른 설치, 제거, 자기 자신과 동시에 돌 수 없게 하려는 것으로, 모두 같은 asdf/Homebrew 상태를 바꾸기 때문이다.
+#   실제 파일시스템에서 디렉터리 생성은 원자적이므로 동시에 `mkdir LT_LOCK_DIR`를 해도 하나만 성공한다.
+#   `${LT_LOCK_DIR:-기본값}` 꼴은 아래 ASDF_DATA_DIR와 같은 재정의 패턴이라, 테스트나 특수한 호출자가 acquire_lock 안에 특례를 두지 않고도 실제 공유 경로 대신 다른 곳을 가리킬 수 있다.
 #   관련: acquire_lock, TASK-84
 #   개념: 원자성
 # 5 감사 로그는 $HOME 바로 아래
 #   설명: 제거 중 rm -rf $ASDF_DATA_DIR가 감사 기록까지 지우지 않도록 데이터 디렉터리 밖에 둔다.
-#   관련: TASK-107
+#   설치/제거가 실제로 바꾼 모든 것(무엇을 어디에 설치·제거·수정했는지)을 사람이 읽을 수 있게 남기는 감사 기록이다.
+#   LT_LOCAL_PINS_FILE_NAME과 달리 $ASDF_DATA_DIR가 아니라 $HOME 바로 아래에 둔 것은, 제거 직전·직후에 확인하고 싶을 바로 그 이력을 rm -rf가 지우지 않게 하려는 의도다.
+#   LT_LOCK_DIR처럼 재정의할 수 있어 테스트가 실제 $HOME 대신 임시 파일을 가리킬 수 있다.
+#   관련: TASK-107, m-10
 # 6 설치 전 상태 스냅샷 파일 위치
 #   설명: 제거가 삭제 여부를 판단할 때 읽는 파일이라 rm -rf $ASDF_DATA_DIR 대상 밖($HOME)에 둔다. 파싱 전용 key=value 형식.
-#   관련: decision-6, TASK-123, TASK-124
+#   이 도구가 손대기 전에 asdf·데이터 디렉터리·플러그인이 이미 있었는지 기록해, 제거(TASK-124)가 이 도구가 만들지 않은 상태를 지우지 않게 한다.
+#   LT_REPORT_FILE에 한 줄 더하는 방식이 아니라 별도 파일로 둔 것은 용도가 달라서다. 그쪽은 사람이 읽는 감사 로그(lt_report의 타임스탬프 줄)이고, 이쪽은 제거가 실제 삭제/건너뜀을 결정하려고 파싱하므로 로그 줄의 자유 서식 "detail" 필드가 아닌 안정적인 파싱 전용 형식(lt_snapshot_prior_asdf_state, lt_prior_state_get 참고)이 필요하다.
+#   $ASDF_DATA_DIR가 아니라 $HOME 아래에 두는 이유는 LT_REPORT_FILE과 같다. 제거 중 rm -rf가, 그 rm -rf를 할지 판단하려고 곧 읽을 바로 그 파일을 지우면 안 된다.
+#   관련: decision-6, TASK-123, TASK-124, m-13
 # 7 스냅샷은 한 번만, 어떤 설치 단계보다 먼저
 #   설명: asdf·데이터 디렉터리·플러그인이 이 도구 이전부터 있었는지 기록한다. 이미 파일이 있으면 재실행이므로 덮어쓰지 않는다(덮어쓰면 "이 도구가 손대기 전" 기준선이 오염된다). 호출 순서는 호출자(install/main.sh)가 지킨다.
+#   asdf(brew list asdf), 그 데이터 디렉터리(lt_asdf_data_dir), asdf 플러그인이 이미 있었는지를 단순한 `key=value` 줄로 LT_PRIOR_STATE_FILE에 쓴다. 이 파일의 유일한 독자는 사람이 아니라 제거(TASK-124.1)의 조건 로직이라 lt_report() 식 타임스탬프 로그 형식을 쓰지 않는다. 형식 전문은 decision-6.
+#   asdf를 설치하거나 데이터 디렉터리를 만들 수 있는 어떤 phase(01_bootstrap_asdf.sh)보다도 먼저 돌아야 하며, 그 순서는 호출자의 책임이다. install/main.sh가 언어 선택 직후 phase 루프가 시작되기 전에 호출한다.
+#   쓰기는 한 번뿐이다. LT_PRIOR_STATE_FILE이 이미 있으면 이후 호출은 설치 재실행(Ctrl-C 복구, 언어 추가 등)일 수밖에 없고, 그때는 asdf/데이터 디렉터리에 이 도구가 앞선 실행에서 만든 상태가 들어 있을 수 있다. 그때 덮어쓰면 제거가 의존하는 "이 도구가 손대기 전" 기준선이 오염된다.
 #   관련: decision-6, TASK-124.1, scripts/install/main.sh
 # 8 rc 파일 줄 정의의 단일 출처
 #   설명: 설치(04)는 쓸 줄을, 제거(03)는 지울 패턴을 모두 여기서 읽는다. 두 곳이 따로 패턴을 들고 있다가 어긋난 TASK-56(BSD sed가 java-hook 줄을 못 지움)을 막는다. brew shellenv만 prepend다.
+#   lt_env_var_defs [java_hook_file] (TASK-64)는 이 도구의 설치기가 관리하는 rc 파일 항목마다 한 줄씩, "<search-pattern>|||<placement>|||<line-to-write>" 형식(필드에 없는 문자라 삼중 파이프 구분자)으로 출력한다.
+#   Bash 3.2에는 연관 배열이 없어 구분자로 나눈 평평한 줄 목록이며, `while IFS= read -r def; do ... done < <(lt_env_var_defs ...)`로 읽는다. 줄에 공백이 있어 each_tool()이 .tool-versions 줄을 읽는 것과 같은 모양에 구분자만 다르게 했다.
+#   install/04_configure_shell_env.sh는 각 <line-to-write>를 <search-pattern>으로 가드해 쓰고, <placement>("prepend" 또는 "append")에 따라 prepend_env_var 또는 append_env_var를 부른다. 배치 결정을 호출자가 문자열로 알아보게 하지 않고 여기 데이터로 두므로 패턴과 따로 낡을 수 없다.
+#   uninstall/03_clean_env_vars.sh는 <search-pattern> 필드만 쓰며 각각을 `sed -E -e '/pattern/d'` 식으로 바꾼다. 둘 다 이 함수 하나를 읽고 각자 패턴을 다시 쓰지 않는다. 그런 어긋남이 TASK-56의 원인이었다(제거 쪽 패턴 사본이 설치 쪽은 맞출 필요가 없던 GNU 전용 정규식 확장을 써서 BSD sed가 java-hook 줄을 못 지움). 새 rc 줄은 여기에 항목 하나만 더하면 설치와 제거가 자동으로 따라온다.
+#   java-hook 줄의 내용은 어느 셸 변형을 쓰는지에 달려 있고(설치만 고른 rc 파일로 안다) 호출자가 $1로 넘긴다. 제거는 search-pattern 필드만 읽고 내용은 안 읽으므로 인자를 넘기지 않는다.
+#   "brew shellenv"가 유일한 "prepend" 항목이다. asdf shim PATH 줄보다 앞에 와야 이름이 같은 Homebrew 포뮬러가 asdf shim을 가리지 못한다(prepend_env_var의 주석 참고). 나머지는 모두 append.
 #   관련: scripts/install/04_configure_shell_env.sh, scripts/uninstall/03_clean_env_vars.sh, TASK-56, TASK-64
 #   개념: SSOT
 # 9 변경 명령은 모두 run을 거친다(dry-run 게이트)
 #   설명: brew install, asdf install, rm -rf 등 시스템을 바꾸는 명령은 직접 부르지 않고 run으로 감싼다. DRY_RUN이면 출력만 한다. "$@"로 인자 경계를 보존한다.
+#   run <cmd...>는 dry-run 게이트다. 실제로 시스템을 바꾸는 모든 명령(brew install, asdf install, rm -rf 등)은 직접 호출하지 않고 이것을 거친다.
 # 10 지수 백오프 재시도
 #   설명: 일시적 실패만 대상으로 하며 소진되면 실패를 그대로 돌려줘 호출자가 판단한다. run과 겹쳐 쓰면 dry-run에서 첫 호출에 끝난다.
+#   retry <max_attempts> <delay_seconds> <cmd...>는 <cmd...>가 실패하면 지연이 매번 두 배가 되는 지수 백오프로 최대 <max_attempts>번까지 시도한다. 다운로드 중 네트워크가 잠깐 끊기는 것 같은 진짜 일시적 실패용이고 실제 오류를 고치는 대용품이 아니다. 그래서 시도를 다 쓰면 `|| true`가 아니라 실패를 그대로 반환해 그 의미를 호출자가 정한다.
+#   run()과 겹쳐 쓴다: `retry 3 5 run asdf install "$plugin" "$version"`. DRY_RUN에서는 run()이 출력하고 첫 호출에 성공을 반환하므로 retry 루프도 바로 끝나 dry-run 출력이 반복되지 않는다.
 #   관련: TASK-88
 # 11 POSIX 프리미티브만으로 만든 벽시계 타임아웃
 #   설명: timeout/gtimeout은 Homebrew 이전에 없고 프로세스 그룹 kill은 dash에서 동작하지 않는다. 백그라운드 작업 + wait + 감시 서브셸 구조이며, 출력은 파일로 받아 고아 자식이 호출자의 $(...)를 붙잡지 못하게 한다.
-#   관련: decision-10, TASK-138.1, install.sh (같은 아이디어의 인라인 사본)
+#   lt_run_with_timeout <seconds> <cmd> [args...] (TASK-138.1, decision-10)는 <cmd...>를 <seconds> 안에 끝나지 않으면 죽이는 엄격한 벽시계 타임아웃으로 실행한다.
+#   필요한 이유: "이미 시작된 전송이 느려졌을 때" 쓰는 가드(curl --max-time, git의 http.lowSpeedLimit/lowSpeedTime. lt_upstream_latest_version의 python 분기 참고)는 바이트가 오가기 전에 연결이 블랙홀이 되는 경우(DNS/TCP/TLS 핸드셰이크 멈춤)에는 아예 작동하지 않고, decision-10은 curl/git 자체 안에 그에 대한 POSIX 안전 해법이 없음을 확인했다.
+#   `timeout(1)`/`gtimeout(1)`도 검토 후 기각했다(decision-10). 둘 다 Homebrew가 GNU coreutils를 깔기 전의 새 Mac에는 없는데, 이 함수는 Homebrew 존재가 보장되기 전인 phase 0에서 돌아야 한다.
+#   그래서 이 파일의 다른 곳(run_phase())과 같은 모양의 POSIX sh 프리미티브(백그라운드 작업 + `wait`)로 만들었다. <cmd...>를 백그라운드로 돌리고, <seconds>를 자고 아직 살아 있으면 죽이는 감시(watchdog) 서브셸과 경주시킨다.
+#   "죽여야 했는지"는 변수가 아니라 표식 파일로 감시 서브셸 밖에 전한다. 백그라운드 작업은 별도 프로세스라 거기서 설정한 변수는 함께 사라지고, 양쪽이 모두 볼 수 있는 것은 파일뿐이다.
+#   <cmd...>의 stdout/stderr는 이 함수의 fd에 바로 잇지 않고 임시 파일로 받았다가 나중에 `cat`한다. 편의가 아니라 의도적이다. <cmd...>가 자기 자식을 띄우고(예: https:// URL의 `git ls-remote`는 `git-remote-https` 헬퍼를 exec해 실제 네트워크 일을 한다) 이 함수가 추적한 PID 하나만 죽이면 그 손자가 고아로 남을 수 있다.
+#   프로세스 트리 전체에 신호를 보내는 이식 가능한 방법(작업 제어 프로세스 그룹 kill)은 되지 못했다. `set -m`은 bash가 백그라운드 작업마다 자체 프로세스 그룹을 주게 하지만 dash는 그렇지 않음을 직접 확인했고, `kill -TERM -"$cmd_pid"`는 dash에서 아무 데도 닿지 않은 채 조용히 실패한다. 둘 다에서 돌아야 하는 코드베이스에는 쓸 수 없다.
+#   <cmd...>의 출력을 호출자의 `$(...)`로 바로 파이프하면 정확히 그 문제를 만난다. 파이프의 읽기 쪽은 쓰기 끝을 연 모든 프로세스가 끝나야 EOF를 보므로, 같은 fd를 쥔 고아 손자가 남아 있으면 이 함수가 아무리 빨리 포기해도 호출자의 `$(...)`가 고아의 남은 수명 내내 막힌다. 일반 파일은 다른 프로세스가 쓰기용으로 열고 있어도 읽기가 막히지 않으므로, 타임아웃 뒤 고아가 (드물게, 무해하게) 어딘가 백그라운드에서 돌고 있어도 호출자가 걸리지 않는다.
+#   대가는 버퍼링이다. 실시간 스트리밍하는 호출자는 <cmd...>가 끝나거나 죽을 때까지 아무것도 못 보지만, 여기 호출 지점은 그게 필요 없고 기존 호출자는 모두 어차피 `$(...)`로 출력을 먼저 전부 캡처한다.
+#   관련: decision-10, TASK-138.1, install.sh (같은 아이디어의 인라인 사본), run_phase(), lt_upstream_latest_version
 # 12 phase를 백그라운드 + wait로 실행
 #   설명: 전경 명령은 끝날 때까지 trap을 지연시켜 Ctrl-C 중 잠금이 풀리지 않는다. wait는 trap 신호에 즉시 반환한다. 종료 상태를 그대로 돌려줘야 set -eu가 실패 phase를 멈춘다.
-#   관련: TASK-90, scripts/install/main.sh
+#   run_phase <script>는 phase 스크립트를 평범한 동기식 `sh "$script"` 호출이 아니라 백그라운드 작업 + `wait`로 실행하고 기다린다(TASK-90).
+#   trap이 등록된 신호는 평범한 전경 명령이 끝나길 기다리며 막힌 셸을 깨우지 못하고, POSIX 셸은 그 명령이 스스로 반환한 뒤에야 trap을 처리한다. 컴파일 중인 수 분짜리 `asdf install`이면 Ctrl-C/SIGTERM이 컴파일이 자연히 끝날 때까지 처리되지 않고 잠금도 풀리지 않는다.
+#   `wait`는 다르다. POSIX가 trap된 신호가 오는 즉시 일찍 반환함을 명시적으로 보장하므로 trap이 바로 발동한다.
+#   이는 코드 검토가 아니라 실제 CI 실패로 발견했다. TASK-32의 "설치 도중 kill 후 재실행" 잡이 "another install appears to be running"으로 실패했는데, main.sh가 아직 자기 SIGTERM을 처리하지 못해 첫 실행의 잠금이 회수되지 않은 채 쥐어져 있었기 때문이다.
+#   직계 자식만 대상으로 하고 그 아래 후손(예: `asdf install`의 컴파일러 하위 프로세스)은 건드리지 않는다. 재실행이 의존하는 *잠금* 해제를 빠르게 하는 데는 충분하고, 잠시 남는 더 깊은 고아는 이 프로세스가 관리할 몫이 아니다.
+#   phase의 종료 상태를 그대로 반환한다. 끝의 `LT_CHILD_PID=""` 대입이 돌려주는 값(항상 0)이 아니어야 호출자의 `set -eu` 아래에서 실패한 phase가 조용히 성공으로 취급되지 않고 실행을 멈춘다.
+#   관련: TASK-90, TASK-32, scripts/install/main.sh
 # 13 실행 중 잠금 획득과 stale 잠금 회수
 #   설명: mkdir 성공이 곧 획득이다. 이미 있으면 기록된 PID가 살아 있는지(kill -0) 보고, 죽었으면 회수한다. 호출자는 바로 뒤에 trap으로 release_lock을 걸어야 한다.
+#   acquire_lock (TASK-84)는 LT_LOCK_DIR에 배타 잠금을 잡아 두 설치/제거가 asdf/Homebrew 상태를 동시에 바꾸지 못하게 한다. `mkdir`은 성공(획득)이거나 디렉터리가 이미 있어 실패(남이 쥠)이거나 둘 중 하나뿐이라 경합이 없다.
+#   이미 쥐어져 있으면 그 안에 기록된 PID가 아직 살아 있는지 `kill -0`(POSIX 규정, 신호를 보내지 않음)으로 본다. 살아 있으면 진짜 동시 실행이므로 명확한 메시지로 죽는다. 죽었으면 잠금을 쥔 쪽이 자기 `release_lock` trap이 발동하기 전에 죽거나 kill된 것이므로, 앞으로의 모든 실행을 영구히 막지 않도록 낡은 잠금을 회수한다.
+#   호출자는 이것을 부른 직후 `trap 'release_lock' EXIT`(또는 기존 결합 trap에 넣기)를 걸어야 한다.
 #   관련: TASK-84, lt_die_if_lock_held
 # 14 phase 프로세스마다 asdf를 PATH에 보장
 #   설명: main.sh가 각 phase를 별도 프로세스로 실행하므로 앞 phase의 export는 이어지지 않는다. 콜론으로 감싼 case 비교로 이미 있는 경우를 건너뛴다.
+#   최신 Homebrew asdf(v0.16+, Go 재작성판)는 source할 libexec/asdf.sh가 없는 단일 바이너리라 셸 통합은 $ASDF_DATA_DIR/shims를 PATH에 넣는 것이 전부다. `asdf`나 asdf shim을 부르는 모든 phase가 맨 먼저 이 함수를 불러, 어느 phase도 앞선 phase가 이 프로세스에 무언가 export해 두었기를 기대하지 않는다(main.sh가 각 phase를 별도 `bash` 자식 프로세스로 돌려 아무것도 자동으로 이어지지 않는다).
 #   관련: scripts/install/main.sh
 # 15 방금 설치된 brew도 이 프로세스에서 호출 가능하게
 #   설명: Homebrew 설치기는 PATH를 고치지 않는다. 다른 프로세스에서 막 설치됐을 수 있어 아키텍처별 고정 경로로 직접 폴백한다.
+#   *이* 프로세스에서 `brew`를 부를 수 있게 한다. 방금 *다른* phase의 프로세스가 Homebrew를 설치했을 수 있고, main.sh가 각 phase를 별도 `bash` 자식으로 돌리므로 phase 01의 Homebrew 설치에서 export한 것은 이어지지 않는다.
+#   Homebrew 설치기는 PATH를 직접 고치지 않고 사용자가 rc 파일에 손으로 넣을 `eval "$(brew shellenv)"` 줄만 출력하며, 그것은 완전히 새 셸에서만 효과가 있다. 우리 쪽 rc 파일 쓰기(04_configure_shell_env.sh 참고)도 지금 돌고 있는 이 설치에는 도움이 되지 않으므로, Homebrew의 아키텍처별 고정 설치 위치 두 곳으로 직접 폴백한다.
 #   관련: TASK-78, scripts/install/04_configure_shell_env.sh
 # 16 LDFLAGS 등 빌드 플래그 생성
 #   설명: export 안에서 명령 치환을 하면 실패가 가려지므로 변수를 먼저 따로 대입해 set -e가 잡게 한다. brew --prefix는 한 번만 불러 Ruby 기동 비용을 줄인다.
+#   Python(과 관련 런타임)이 keg-only openssl/readline/sqlite3/zlib을 상대로 컴파일하는 데 필요한 Homebrew 빌드 플래그를 다시 export한다. Homebrew는 keg-only 포뮬러를 PATH나 컴파일러 기본 검색 경로에 일부러 넣지 않으므로, 이 export가 없으면 `asdf install python ...`이 OpenSSL/SQLite 헤더를 못 찾는다.
+#   `asdf install`을 도는 phase는 앞선 phase의 export가 아직 유효하다고 믿지 않고 직접 이 함수를 부른다(별도 자식 프로세스이기 때문).
+#   LT_BUILD_DEPS 전체 중 이 넷(openssl, readline, sqlite3, zlib)만 컴파일러/링커 플래그가 필요하다. xz와 tcl-tk는 필요 없어 일부러 뺐다.
 #   관련: LT_BUILD_DEPS
 # 17 기본 버전은 각 언어 공식 소스에서 직접 조회
 #   설명: asdf latest는 플러그인이 이미 추가돼 있어야 해서 phase 0에서 쓸 수 없다. 언어별 공식 배포 인덱스/API를 curl(--max-time)이나 git ls-remote로 부른다. 실패하면 호출자가 정적 값으로 폴백한다.
-#   관련: decision-4, decision-15, TASK-118
+#   lt_upstream_latest_version <plugin> (m-12/TASK-118, decision-4)는 그 플러그인의 최신 안정 버전을 해당 언어의 공식 배포 인덱스/API에서 직접 가져온다. `asdf latest`/`asdf list all`을 일부러 쓰지 않는 이유는 decision-4에 있다. 그것들은 플러그인이 이미 asdf에 추가돼 있어야 하는데 00_select.sh는 phase 0에서 그것을 보장할 수 없다(scripts/install/00_select.sh의 ask_version() 주석 참고).
+#   아래 각 분기는 curl(python은 git)과 네트워크 외에는 필요 없고 asdf도 플러그인도 쓰지 않으므로 phase 0에서 바로 불러도 안전하다.
+#   성공하면 버전 문자열을 출력한다. curl 없음, 네트워크/DNS 실패, 2xx 아닌 응답, 빈 본문, 파싱 불가 등 어떤 실패에서든 아무것도 출력하지 않고 1을 반환하므로 호출자는 항상 정적 폴백을 준비해야 한다(실제 호출 지점이 모두 쓰는 함수는 아래 lt_default_version).
+#   위의 binary_for_plugin()/lt_companion_for_plugin()과 같은 case 분기 방식이며, 이유도 같다. bash 3.2에는 연관 배열이 없다.
+#   관련: decision-4, decision-15, TASK-118, m-12, lt_default_version, binary_for_plugin, lt_companion_for_plugin
 # 18 버전 목록: 신선한 캐시, 아니면 실시간 조회
 #   설명: 정적 폴백이 없어 전부 실패하면 아무것도 출력하지 않고 1을 반환한다. 처리는 호출자(00_select.sh)가 단일 옵션 메뉴로 한다.
-#   관련: decision-17, TASK-129.1, scripts/install/00_select.sh
+#   lt_resolve_version_list <plugin> (m-15/TASK-129.1, decision-17)은 위 lt_resolve_default_version()의 목록판이다. 신선한 캐시, 아니면 실시간 조회(성공 시 캐시), 아니면 실패.
+#   그 함수와 달리 완전히 놓쳐도 정적 값으로 폴백하지 않고 아무것도 출력하지 않은 채 1을 반환한다. .tool-versions에는 플러그인당 버전이 하나뿐이라 폴백할 정적 "전체 목록"이 없으므로, 놓친 처리는 전적으로 호출자의 몫이다.
+#   현재 호출자는 scripts/install/00_select.sh의 ask_version() 하나이며, 놓쳤을 때의 처리는 decision-17이 정한다. 이미 구한 자기 기본값 하나만 보여 주는 단일 옵션 메뉴로, 예전의 자유 텍스트 입력 폴백을 대체한다.
+#   관련: decision-17, TASK-129.1, m-15, scripts/install/00_select.sh, lt_resolve_default_version
