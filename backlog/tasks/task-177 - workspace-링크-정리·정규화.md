@@ -4,7 +4,7 @@ title: 'workspace: 링크 정리·정규화'
 status: In Progress
 assignee: []
 created_date: '2026-11-17T13:00:00Z'
-updated_date: '2026-11-17T14:00:00Z'
+updated_date: '2026-11-17T14:07:00Z'
 labels:
   - workspace
   - symlink
@@ -46,18 +46,18 @@ dev-toolchain PR #3(TASK-176) 병합 — workspace/links.tsv 와 scripts/workspa
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 links.tsv 가 R1(home .local/bin/<cmd> 의 대상은 ~/githubs/bin/<cmd>)·R2(bin/* 와 .local/bin/* 이름 집합 같음, krayctl·source-header 보충)·R3(opensource 를 가리키는 링크는 current 경유, oh-my-zsh 2개 포함)을 지키고 그 규칙을 검사하는 테스트가 있다(B2)
-- [ ] #2 실제 머신에 link --force 로 적용한 뒤 workspace status 가 0 이고 ~/.local/bin 의 모든 명령이 실제 파일로 풀린다. 적용 전 link --dry-run --force 출력에 WRONG-TARGET·MISSING 만 있다(B1)
+- [x] #1 links.tsv 가 R1(home .local/bin/<cmd> 의 대상은 ~/githubs/bin/<cmd>)·R2(bin/* 와 .local/bin/* 이름 집합 같음, krayctl·source-header 보충)·R3(opensource 를 가리키는 링크는 current 경유, oh-my-zsh 2개 포함)을 지키고 그 규칙을 검사하는 테스트가 있다(B2)
+- [x] #2 실제 머신에 link --force 로 적용한 뒤 workspace status 가 0 이고 ~/.local/bin 의 모든 명령이 실제 파일로 풀린다. 적용 전 link --dry-run --force 출력에 WRONG-TARGET·MISSING 만 있다(B1)
 - [ ] #3 ~/.zshrc 41·42행 중복 PATH 줄을 지웠다. 백업(~/.zshrc.bak-2026-11-17)이 있고 새 대화형 zsh 의 PATH 에 ~/.local/bin 이 한 번만 있으며 다른 항목 순서는 이전과 같다(B3)
-- [ ] #4 ~/githubs/omnivim/bin 의 출처 조사 결과(rc·설정 검색, 부모 프로세스 환경, 새 터미널 재확인)가 Notes 에 있다
-- [ ] #5 적용 후 capture 를 다시 돌리면 목록 diff 가 0 이다(목록 = 머신)
+- [x] #4 ~/githubs/omnivim/bin 의 출처 조사 결과(rc·설정 검색, 부모 프로세스 환경, 새 터미널 재확인)가 Notes 에 있다
+- [x] #5 적용 후 capture 를 다시 돌리면 목록 diff 가 0 이다(목록 = 머신)
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 pytest 전체 통과(새 규칙 테스트는 목록 수정 전 실패 확인) 출력을 Notes 에 첨부
-- [ ] #2 적용 전후 status, link --dry-run --force 출력, 새 zsh PATH 전후 비교를 Notes 에 첨부
-- [ ] #3 적용 전 링크 상태(ls -l)를 백업해 되돌릴 수 있다
+- [x] #1 pytest 전체 통과(새 규칙 테스트는 목록 수정 전 실패 확인) 출력을 Notes 에 첨부
+- [x] #2 적용 전후 status, link --dry-run --force 출력, 새 zsh PATH 전후 비교를 Notes 에 첨부
+- [x] #3 적용 전 링크 상태(ls -l)를 백업해 되돌릴 수 있다
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -83,3 +83,18 @@ dev-toolchain PR #3(TASK-176) 병합 — workspace/links.tsv 와 scripts/workspa
 5. ~/.zshrc 백업 → 41·42행 삭제 → 새 zsh PATH 비교.
 6. omnivim/bin 출처 기록, capture 재실행 diff 0, 커밋·PR.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## 2026-11-17 구현·적용 기록
+- 백업: ~/githubs-backup/2026-11-17-links/ (링크 110개 readlink 목록, 이전 links.tsv, 이전 .zshrc), ~/.zshrc.bak-2026-11-17
+- 테스트 먼저: R1~R3 테스트(TASK-177#1·#B2)가 이전 목록에서 3 failed(R1 42행, R2 krayctl/source-header, R3 omz 2행) → 목록 수정 후 pytest 29 passed
+- links.tsv: 44행 대상 변경(.local/bin 42 → ~/githubs/bin/<cmd>, omz 2 → current), 2행 추가(bin/krayctl, .local/bin/source-header). 규칙 R1~R3 을 머리 주석과 workspace.py LINKS_HEADER 에 함께 둠(capture 가 머리를 다시 쓰므로)
+- 적용 전 link --dry-run --force: rm 44 · ln -s 46, 그 밖의 줄 0(NOT-A-LINK·ERROR 없음)
+- 적용: link --force rc=0 → status '정상 137, 어긋남 0' rc=0. ~/.local/bin 의 githubs 링크 전부 실제 파일로 풀림(미해석 0). gh·backlog·source-header 실행 확인
+- 실제 실행 파일은 바뀌지 않음(경유만 추가): ~/githubs/bin 54개의 최종 위치 = Homebrew 31, opensource 직접 6, 내 저장소 15, 기타 2(uv vulture, /usr/bin/jq)
+- .zshrc 41·42행 삭제(Antigravity 설치기 주석은 남김). 깨끗한 환경(env -i, zsh -il) 비교: ~/.local/bin 4회 → 2회, 중복 제거한 실제 탐색 순서는 이전과 동일. 남은 1회 중복은 .zprofile 13행(로그인 셸용, 계획대로 유지)
+- ~/githubs/omnivim/bin 출처: rc·~/.claude/settings 어디에도 없음. 깨끗한 환경 PATH 에는 0회. 이 세션의 부모 로그인 zsh(PID 52431)가 2026-10-29 09:45 에 시작 — omnivim 이 dev-tools/ 로 옮겨지기 전 환경을 물려받은 것. 새 터미널을 열면 사라진다
+- capture 재실행 후 git diff --exit-code workspace/ 0
+<!-- SECTION:NOTES:END -->
