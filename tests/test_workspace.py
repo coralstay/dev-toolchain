@@ -14,6 +14,8 @@
 # 모든 테스트는 tmp_path 안의 가짜 HOME(home/)·githubs 루트(home/githubs/)·목록 폴더(manifest/)만
 # 쓴다. 원격은 로컬 bare 저장소(remotes/*.git)의 파일 경로라 네트워크가 필요 없다. capture 의
 # 소유자 판정은 WORKSPACE_OWNER_PATTERNS 로 remotes/ 경로 접두사를 소유자로 지정해 흉내 낸다.
+# 예외: TASK-177 의 test_committed_links_* 는 샌드박스가 아니라 이 저장소에 커밋된
+# workspace/links.tsv 를 읽어 정규화 규칙(R1~R3)을 검사한다(읽기만 한다).
 
 from __future__ import annotations
 
@@ -448,6 +450,48 @@ def test_runs_on_system_python(world):
     assert r.returncode == 0, r.stdout + r.stderr
     r = world.run("status", python=SYSTEM_PYTHON)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+def committed_links() -> list:
+    """Rows (scope, link, target) of this repo's committed workspace/links.tsv."""
+    return [tuple(ln.split("\t")) for ln in data_lines(REPO / "workspace" / "links.tsv")]
+
+
+def test_committed_links_local_bin_goes_through_githubs_bin():
+    """TASK-177#1 TASK-177#B2 R1: every home .local/bin/<cmd> targets exactly ~/githubs/bin/<cmd>."""
+    bad = [
+        (link, target)
+        for scope, link, target in committed_links()
+        if scope == "home"
+        and link.startswith(".local/bin/")
+        and target != "~/githubs/bin/" + link[len(".local/bin/") :]
+    ]
+    assert bad == []
+
+
+def test_committed_links_bin_and_local_bin_have_same_names():
+    """TASK-177#1 TASK-177#B2 R2: names under githubs bin/* equal names under home .local/bin/*."""
+    rows = committed_links()
+    hub = {link[len("bin/") :] for s, link, _ in rows if s == "githubs" and link.startswith("bin/")}
+    local = {
+        link[len(".local/bin/") :]
+        for s, link, _ in rows
+        if s == "home" and link.startswith(".local/bin/")
+    }
+    assert (sorted(local - hub), sorted(hub - local)) == ([], [])
+
+
+def test_committed_links_opensource_targets_go_through_current():
+    """TASK-177#1 TASK-177#B2 R3: a target under opensource/in-use/<name>/ continues with current/."""
+    marker = "opensource/in-use/"
+    bad = []
+    for scope, link, target in committed_links():
+        if marker not in target:
+            continue
+        rest = target.split(marker, 1)[1].split("/")
+        if len(rest) < 2 or rest[1] != "current":
+            bad.append((scope, link, target))
+    assert bad == []
 
 
 # == Coverage ==
