@@ -324,6 +324,9 @@ cmd_help() {
   dev-toolchain sync             글로벌/로컬 .tool-versions의 @oss 목록 기준으로
                                  upstream/ 클론, bundles/<태그>.bundle, <태그>/ 폴더 및
                                  프로젝트별 .opensource/<이름> 심볼릭 링크 일괄 동기화
+  dev-toolchain workspace [status|link|bootstrap|capture] [--dry-run]
+                                 ~/githubs 저장소 배치·심볼릭 링크를 workspace/*.tsv 목록과
+                                 비교(status)·복원(link, bootstrap)·기록(capture)
   dev-toolchain help (--help)    이 도움말 출력
 
 2. 언어 런타임(asdf) 부트스트랩 & 설치 명령어:
@@ -394,5 +397,5 @@ esac
 # 10 프로젝트 .gitignore가 아니라 .git/info/exclude에 추가
 #   설명: 저장소를 건드리지 않고 로컬에서만 .opensource/를 무시한다. 같은 줄이 이미 있으면 다시 쓰지 않는다.
 # 11 서브커맨드 디스패치
-#   설명: 인자가 없으면 status다. install.sh가 알려진 서브커맨드를 이 스크립트로 exec해 넘기므로 두 곳의 이름 목록이 같아야 한다.
-#   관련: install.sh
+#   설명: 인자가 없으면 status다. install.sh가 알려진 서브커맨드를 이 스크립트로 exec해 넘기므로 두 곳의 이름 목록이 같아야 한다. workspace 만은 install.sh가 이 스크립트를 거치지 않고 scripts/workspace.py로 바로 넘기므로 여기 case에는 없고 도움말(cmd_help)에만 적는다.
+#   관련: install.sh, scripts/workspace.py

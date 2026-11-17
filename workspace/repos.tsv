@@ -1,0 +1,26 @@
+# workspace/repos.tsv - ~/githubs 아래 저장소 배치 목록 (SSOT, TASK-176)
+# 형식: <경로><TAB><원격 URL>
+#   경로: githubs 루트 기준 상대 경로. 경로순 정렬
+# 범위: 깊이 1~3, coralstay 소유 원격만. opensource/ 는 .tool-versions(@oss)가 관리해 뺀다
+# 갱신: dev-toolchain workspace capture (손으로 고쳐도 되지만 capture 가 다시 쓴다)
+.github-profile	git@github.com:coralstay/coralstay.git
+coralstay-software-factory	git@github.com:coralstay/coralstay-software-factory.git
+coralstay-software-factory/components/agent-orchestrator	git@github.com:coralstay/agent-orchestrator.git
+coralstay-software-factory/components/claude-code-agile-hooks	git@github.com:coralstay/claude-code-agile-hooks.git
+coralstay-software-factory/components/coding-agent-git-commit-tool	git@github.com:coralstay/coding-agent-git-commit-tool.git
+dev-tools/central-docs-collector	git@github.com:coralstay/central-docs-collector.git
+dev-tools/dev-toolchain	git@github.com:coralstay/dev-toolchain.git
+dev-tools/ebpf-wire-to-code-tracer	git@github.com:coralstay/ebpf-wire-to-code-tracer.git
+dev-tools/omnivim	git@github.com:coralstay/omnivim.git
+dev-tools/source-header	git@github.com:coralstay/source-header.git
+freeride	git@github.com:coralstay/freeride.git
+freeride/coding-style-refactoring-principles	git@github.com:coralstay/coding-style-refactoring-principles.git
+freeride/databases	git@github.com:coralstay/databases.git
+freeride/devOps-LifeCycle	git@github.com:coralstay/devOps-LifeCycle.git
+freeride/doctree	git@github.com:coralstay/doctree.git
+freeride/handcrafted-cpp	git@github.com:coralstay/handcrafted-cpp.git
+freeride/handcrafted-java	git@github.com:coralstay/handcrafted-java.git
+freeride/handcrafted-python	git@github.com:coralstay/handcrafted-python.git
+toy-project/react-next-spring-postgresql-terraform-aws	git@github.com:coralstay/react-next-spring-postgresql-terraform-aws.git
+troubleshooting	git@github.com:coralstay/troubleshooting.git
+upkeep	git@github.com:coralstay/upkeep.git

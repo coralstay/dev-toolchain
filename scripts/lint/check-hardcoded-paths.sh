@@ -33,7 +33,8 @@
 # tool instead.
 #
 # Usage: scripts/lint/check-hardcoded-paths.sh [file ...]
-#   No args: scans install.sh, uninstall.sh, scripts/lib.sh, and every
+#   No args: scans install.sh, uninstall.sh, scripts/lib.sh,
+#   scripts/workspace.py (TASK-176; '#' comment lines skip the same way), and every
 #   scripts/install/*.sh + scripts/uninstall/*.sh phase script — i.e. the
 #   actual product code this class of bug hit before.
 #   With args: scans exactly those files (used by CI to scan changed files,
@@ -119,7 +120,7 @@ EOF
 }
 
 if [ "$#" -eq 0 ]; then  # ---- 3
-  set -- install.sh uninstall.sh scripts/lib.sh
+  set -- install.sh uninstall.sh scripts/lib.sh scripts/workspace.py
   for f in scripts/install/*.sh scripts/uninstall/*.sh; do
     [ -f "$f" ] && set -- "$@" "$f"
   done
