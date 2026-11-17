@@ -52,6 +52,10 @@ LINKS_HEADER = (
     "# 형식: <범위><TAB><링크><TAB><대상>",
     "#   범위 githubs: 링크는 githubs 루트 기준 상대 경로 / home: $HOME 기준 상대 경로",
     "#   대상: readlink 값 그대로. 단 $HOME 으로 시작하는 절대 경로는 ~ 로 적는다",
+    "# 규칙(TASK-177, tests/test_workspace.py 가 검사):",
+    "#   R1 home .local/bin/<명령> 의 대상은 ~/githubs/bin/<같은 이름> (~/githubs/bin 이 유일한 허브)",
+    "#   R2 githubs bin/* 와 home .local/bin/* 의 이름 집합이 같다",
+    "#   R3 opensource/in-use/<이름>/ 을 가리키는 대상은 버전 폴더가 아니라 current 를 거친다",
     "# 정렬: (범위, 링크)",
     "# 갱신: dev-toolchain workspace capture (손으로 고쳐도 되지만 capture 가 다시 쓴다)",
 )
