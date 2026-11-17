@@ -2,7 +2,7 @@
 id: decision-19
 title: 'POSIX sh 유지, SonarCloud S7688 규칙은 활성 유지 (오탐 회귀 탐지용)'
 date: '2026-09-10 01:13'
-status: accepted
+status: superseded by decision-24
 ---
 ## Context
 
