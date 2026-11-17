@@ -4,10 +4,14 @@ title: dev-toolchain 전체를 py 로 옮긴다(install.sh 진입점만 sh 유�
 status: Draft
 assignee: []
 created_date: '2026-11-17T13:00:00Z'
+updated_date: '2026-11-17T13:30:00Z'
 labels:
   - python
   - migration
 dependencies: []
+references:
+  - decision-24
+  - decision-19
 ---
 
 ## Description
