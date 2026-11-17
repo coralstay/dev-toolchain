@@ -1,10 +1,10 @@
 ---
 id: TASK-177
 title: 'workspace: 링크 정리·정규화'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-17T13:00:00Z'
-updated_date: '2026-11-17T13:57:00Z'
+updated_date: '2026-11-17T14:00:00Z'
 labels:
   - workspace
   - symlink
