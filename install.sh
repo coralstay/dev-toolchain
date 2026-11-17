@@ -82,6 +82,11 @@ if [ -n "${SELF_DIR:-}" ] && [ -d "$SELF_DIR/scripts/install" ]; then
     status|--status|current|--current|project|--project|sync|--sync|help|--help|-h)
       exec sh "$SELF_DIR/scripts/oss_sync.sh" "$@"
       ;;
+    workspace|--workspace)
+      # Repo layout + symlink manifests (workspace/*.tsv, TASK-176)
+      shift
+      exec python3 "$SELF_DIR/scripts/workspace.py" "$@"
+      ;;
   esac
   # Running from an existing local clone — use it as-is, no network needed.
   # `exec` replaces this process instead of spawning a child, so there's no
