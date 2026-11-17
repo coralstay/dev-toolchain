@@ -4,7 +4,7 @@ title: 'workspace: 저장소 배치·심볼릭 링크를 목록 파일(SSOT)로 
 status: In Progress
 assignee: []
 created_date: '2026-11-17T12:55:00Z'
-updated_date: '2026-11-17T13:01:00Z'
+updated_date: '2026-11-17T13:25:00Z'
 labels:
   - workspace
   - symlink
@@ -45,20 +45,20 @@ documentation:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 repos.tsv·links.tsv 가 지금 머신을 그대로 담는다(저장소 21, 링크 약 113). 형식 설명이 파일 머리 주석에 있고 홈 절대 경로가 없다(B4)
+- [x] #1 repos.tsv·links.tsv 가 지금 머신을 그대로 담는다(저장소 21, 링크 약 113). 형식 설명이 파일 머리 주석에 있고 홈 절대 경로가 없다(B4)
 - [ ] #2 status 가 상태 분류(저장소 OK/MISSING/WRONG-REMOTE, 링크 OK/MISSING/WRONG-TARGET/NOT-A-LINK/DANGLING, 목록 밖 UNTRACKED)와 종료 코드(어긋남 있으면 1)를 지키고 지금 머신에서 0 이다
-- [ ] #3 link 가 없는 링크만 만들고 멱등이며 --dry-run 이면 부작용이 없다. 실제 파일·폴더는 덮어쓰지 않고(B1) 대상이 다른 링크는 --force 일 때만 바꾼다(B2)
-- [ ] #4 bootstrap 이 없는 저장소만 clone 한 뒤 링크를 만들고, 이미 있는 저장소 폴더는 건드리지 않는다(B3)
-- [ ] #5 capture 가 결정적이고(B5) 지금 머신에서 다시 돌려도 목록 diff 가 0 이다
-- [ ] #6 dev-toolchain workspace … 로 호출되고 help·README(오픈소스 절 옆 새 절 + CLI 사용법 + 구조 표)가 갱신된다
-- [ ] #7 tests/test_workspace.py 가 위를 샌드박스(tmp_path 가짜 HOME·루트, 로컬 bare 저장소, 네트워크 없음)에서 검증하고 테스트 이름에 <ID>#n·<ID>#Bk 표식이 있다
+- [x] #3 link 가 없는 링크만 만들고 멱등이며 --dry-run 이면 부작용이 없다. 실제 파일·폴더는 덮어쓰지 않고(B1) 대상이 다른 링크는 --force 일 때만 바꾼다(B2)
+- [x] #4 bootstrap 이 없는 저장소만 clone 한 뒤 링크를 만들고, 이미 있는 저장소 폴더는 건드리지 않는다(B3)
+- [x] #5 capture 가 결정적이고(B5) 지금 머신에서 다시 돌려도 목록 diff 가 0 이다
+- [x] #6 dev-toolchain workspace … 로 호출되고 help·README(오픈소스 절 옆 새 절 + CLI 사용법 + 구조 표)가 갱신된다
+- [x] #7 tests/test_workspace.py 가 위를 샌드박스(tmp_path 가짜 HOME·루트, 로컬 bare 저장소, 네트워크 없음)에서 검증하고 테스트 이름에 <ID>#n·<ID>#Bk 표식이 있다
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 pytest 전체 통과와 기존 shellspec(sh·dash) 회귀 없음 출력을 Notes 에 첨부
-- [ ] #2 ruff check 통과, 시스템 python3(3.9)로 workspace.py --help 실행 확인, source-header lint --strict 0
-- [ ] #3 새 파일에 헤더·줄 끝 표식·하단 노트가 있다
+- [x] #1 pytest 전체 통과와 기존 shellspec(sh·dash) 회귀 없음 출력을 Notes 에 첨부
+- [x] #2 ruff check 통과, 시스템 python3(3.9)로 workspace.py --help 실행 확인, source-header lint --strict 0
+- [x] #3 새 파일에 헤더·줄 끝 표식·하단 노트가 있다
 - [ ] #4 실제 머신에서 status 종료 0 과 capture 후 git diff --exit-code workspace/ 0 출력을 첨부
 <!-- DOD:END -->
 
@@ -84,3 +84,17 @@ documentation:
 4. 실제 머신에서 capture 로 workspace/*.tsv 생성 → status 0 확인.
 5. 전체 검증(pytest, ruff, 시스템 python3, shellspec 회귀, lint) 후 Notes 첨부, PR.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## 2026-11-17 구현·검증 (서브에이전트 구현, 아래는 내가 직접 다시 돌린 결과)
+- 커밋: 004cc68(테스트) → 198603b(workspace.py, install.sh 위임, oss_sync help·노트, lint 스캔 목록) → 1796808(목록 데이터) → f8c2ac6(README)
+- 테스트 먼저: 구현 전 26 failed → 구현 후 pytest 26 passed. 표식 TASK-176#1~#6, #B1~#B5 모두 있음
+- 회귀: shellspec 228 examples 0 failures(sh), 228 0 failures(--shell dash)
+- ruff check 통과, /usr/bin/python3(3.9.6) workspace.py --help 동작, sh -n install.sh 통과, check-hardcoded-paths OK(workspace.py 를 스캔 목록에 추가), source-header lint --strict rc=0, 표식 9·노트 9
+- 실제 머신 capture: 저장소 21, 링크 114(githubs 57 = bin 54 + 별칭 3, home 57). 목록에 /Users/ 0건. 두 번째 capture 체크섬 동일(B5)
+- 실제 머신 status: 정상 133, 어긋남 2, UNTRACKED 0 → rc=1. 어긋남은 DANGLING 2건: bin/agent-orchestrator → coralstay-software-factory/components/agent-orchestrator/build/install/agent-orchestrator/bin/agent-orchestrator(빌드 산출물 없음, 이번 변경 전부터 끊김)과 이를 가리키는 ~/.local/bin/agent-orchestrator. 유저 결정 대기
+- link --dry-run · bootstrap --dry-run: 실행할 작업 0(위 2건만 보고). 실제 머신에 link/bootstrap 실행 안 함
+- 구현 선택: 테스트용 WORKSPACE_OWNER_PATTERNS, UNTRACKED 는 저장소에도 적용, link 는 DANGLING 을 실패로 세지 않음(status 는 어긋남으로 셈), clone 실패·시간 초과 시 이번에 만든 폴더만 지움, 목록 없으면 status rc=2
+<!-- SECTION:NOTES:END -->
