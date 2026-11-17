@@ -1,7 +1,7 @@
 ---
-id: DRAFT-16
+id: TASK-177
 title: 'workspace: 링크 정리·정규화'
-status: Draft
+status: To Do
 assignee: []
 created_date: '2026-11-17T13:00:00Z'
 updated_date: '2026-11-17T13:46:00Z'
