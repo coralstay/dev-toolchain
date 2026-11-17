@@ -1,10 +1,10 @@
 ---
 id: TASK-178
 title: 'workspace tools: 워크스페이스 실행 파일 설치 목록과 설치 명령'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-17T14:11:00Z'
-updated_date: '2026-11-17T14:27:00Z'
+updated_date: '2026-11-17T14:30:00Z'
 labels:
   - workspace
   - install
