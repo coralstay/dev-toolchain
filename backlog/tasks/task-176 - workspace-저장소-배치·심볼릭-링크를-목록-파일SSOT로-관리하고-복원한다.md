@@ -1,10 +1,10 @@
 ---
 id: TASK-176
 title: 'workspace: 저장소 배치·심볼릭 링크를 목록 파일(SSOT)로 관리하고 복원한다'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-11-17T12:55:00Z'
-updated_date: '2026-11-17T13:00:00Z'
+updated_date: '2026-11-17T13:01:00Z'
 labels:
   - workspace
   - symlink
