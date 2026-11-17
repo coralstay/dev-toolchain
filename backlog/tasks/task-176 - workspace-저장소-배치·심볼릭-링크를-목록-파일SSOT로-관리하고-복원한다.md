@@ -4,12 +4,15 @@ title: 'workspace: 저장소 배치·심볼릭 링크를 목록 파일(SSOT)로 
 status: To Do
 assignee: []
 created_date: '2026-11-17T12:55:00Z'
-updated_date: '2026-11-17T12:59:00Z'
+updated_date: '2026-11-17T13:00:00Z'
 labels:
   - workspace
   - symlink
   - ssot
 dependencies: []
+documentation:
+  - /Users/flynn_macpro/.claude/plans/happy-honking-bird.md
+  - README.md
 ---
 
 ## Description
