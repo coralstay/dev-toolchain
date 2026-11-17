@@ -4,11 +4,18 @@ title: 'workspace tools: 워크스페이스 실행 파일 설치 목록과 설�
 status: To Do
 assignee: []
 created_date: '2026-11-17T14:11:00Z'
-updated_date: '2026-11-17T14:11:00Z'
+updated_date: '2026-11-17T14:27:00Z'
 labels:
   - workspace
   - install
-dependencies: []
+dependencies:
+  - TASK-177
+references:
+  - TASK-176
+  - TASK-177
+  - decision-24
+documentation:
+  - /Users/flynn_macpro/.claude/plans/dev-toolchain-workspace-tools.md
 ---
 
 ## Description
