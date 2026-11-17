@@ -4,11 +4,16 @@ title: 'workspace: 링크 정리·정규화'
 status: To Do
 assignee: []
 created_date: '2026-11-17T13:00:00Z'
-updated_date: '2026-11-17T13:46:00Z'
+updated_date: '2026-11-17T13:54:00Z'
 labels:
   - workspace
   - symlink
-dependencies: []
+dependencies:
+  - TASK-176
+references:
+  - TASK-176
+documentation:
+  - /Users/flynn_macpro/.claude/plans/happy-honking-bird.md
 ---
 
 ## Description
