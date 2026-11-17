@@ -1,7 +1,7 @@
 ---
 id: TASK-176
 title: 'workspace: 저장소 배치·심볼릭 링크를 목록 파일(SSOT)로 관리하고 복원한다'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-17T12:55:00Z'
 updated_date: '2026-11-17T13:30:00Z'
@@ -48,7 +48,7 @@ documentation:
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 repos.tsv·links.tsv 가 지금 머신을 그대로 담는다(저장소 21, 링크 약 113). 형식 설명이 파일 머리 주석에 있고 홈 절대 경로가 없다(B4)
-- [ ] #2 status 가 상태 분류(저장소 OK/MISSING/WRONG-REMOTE, 링크 OK/MISSING/WRONG-TARGET/NOT-A-LINK/DANGLING, 목록 밖 UNTRACKED)와 종료 코드(어긋남 있으면 1)를 지키고 지금 머신에서 0 이다
+- [x] #2 status 가 상태 분류(저장소 OK/MISSING/WRONG-REMOTE, 링크 OK/MISSING/WRONG-TARGET/NOT-A-LINK/DANGLING, 목록 밖 UNTRACKED)와 종료 코드(어긋남 있으면 1)를 지키고 지금 머신에서 0 이다
 - [x] #3 link 가 없는 링크만 만들고 멱등이며 --dry-run 이면 부작용이 없다. 실제 파일·폴더는 덮어쓰지 않고(B1) 대상이 다른 링크는 --force 일 때만 바꾼다(B2)
 - [x] #4 bootstrap 이 없는 저장소만 clone 한 뒤 링크를 만들고, 이미 있는 저장소 폴더는 건드리지 않는다(B3)
 - [x] #5 capture 가 결정적이고(B5) 지금 머신에서 다시 돌려도 목록 diff 가 0 이다
@@ -61,7 +61,7 @@ documentation:
 - [x] #1 pytest 전체 통과와 기존 shellspec(sh·dash) 회귀 없음 출력을 Notes 에 첨부
 - [x] #2 ruff check 통과, 시스템 python3(3.9)로 workspace.py --help 실행 확인, source-header lint --strict 0
 - [x] #3 새 파일에 헤더·줄 끝 표식·하단 노트가 있다
-- [ ] #4 실제 머신에서 status 종료 0 과 capture 후 git diff --exit-code workspace/ 0 출력을 첨부
+- [x] #4 실제 머신에서 status 종료 0 과 capture 후 git diff --exit-code workspace/ 0 출력을 첨부
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -99,4 +99,16 @@ documentation:
 - 실제 머신 status: 정상 133, 어긋남 2, UNTRACKED 0 → rc=1. 어긋남은 DANGLING 2건: bin/agent-orchestrator → coralstay-software-factory/components/agent-orchestrator/build/install/agent-orchestrator/bin/agent-orchestrator(빌드 산출물 없음, 이번 변경 전부터 끊김)과 이를 가리키는 ~/.local/bin/agent-orchestrator. 유저 결정 대기
 - link --dry-run · bootstrap --dry-run: 실행할 작업 0(위 2건만 보고). 실제 머신에 link/bootstrap 실행 안 함
 - 구현 선택: 테스트용 WORKSPACE_OWNER_PATTERNS, UNTRACKED 는 저장소에도 적용, link 는 DANGLING 을 실패로 세지 않음(status 는 어긋남으로 셈), clone 실패·시간 초과 시 이번에 만든 폴더만 지움, 목록 없으면 status rc=2
+
+## 2026-11-17 끊긴 링크 해결과 최종 확인
+- 유저 결정: agent-orchestrator 를 빌드해서 링크를 살린다. agent-orchestrator 에서 ./gradlew --offline installDist rc=0 → build/install/agent-orchestrator/bin/agent-orchestrator 생성(소스 변경 없음). agent-orchestrator --help 동작 확인
+- 실제 머신 status: 정상 135, 어긋남 0 → rc=0
+- capture 재실행 후 git diff --exit-code workspace/ 0
+- 유저 결정: decision-19(POSIX sh 유지)를 decision-24(py 전환, curl|sh 진입점만 POSIX sh)로 대체. 이 카드의 workspace.py 는 decision-24 와 맞음
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+dev-toolchain 에 workspace 명령(scripts/workspace.py, 표준 라이브러리·시스템 python3 3.9 호환)과 목록 파일(workspace/repos.tsv 21개, links.tsv 114개)을 추가했다. ~/githubs 의 저장소 배치와 심볼릭 링크가 GitHub 에 표로 남고, status 로 어긋남을 찾고 link·bootstrap 으로 복원하며 capture 로 목록을 다시 만든다. 실제 파일은 덮어쓰지 않고(B1), 대상이 다른 링크는 --force 일 때만 바꾸며(B2), 이미 있는 저장소는 건드리지 않는다(B3). 목록에 홈 절대 경로가 없고(B4) capture 는 결정적이다(B5). 검증: pytest 26 통과(구현 전 26 실패), shellspec 228 sh·dash 회귀 없음, ruff·lint·source-header 통과, 실제 머신 status rc=0. 작업 중 끊겨 있던 agent-orchestrator 링크를 찾아 빌드로 살렸다. 후속: DRAFT-16(링크 정규화)·17(커밋 고정)·18(루트 README)·19(py 전환, decision-24).
+<!-- SECTION:FINAL_SUMMARY:END -->
