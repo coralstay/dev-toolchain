@@ -1,0 +1,83 @@
+# workspace/tools.tsv - ~/githubs/bin 명령과 선행 도구의 설치 목록 (SSOT, TASK-178)
+# 형식: <명령><TAB><공급자><TAB><패키지>[<TAB><비고>]
+#   brew     Homebrew formula. 패키지 = formula 이름(Cellar 폴더 이름)
+#   cask     Homebrew cask. 패키지 = cask 이름
+#   uv-tool  uv tool install. 패키지 = 파이썬 패키지 이름
+#   oss      dev-toolchain sync(.tool-versions @oss)가 만든다. 패키지 = opensource/in-use/<이름>
+#   repo     내 저장소 파일. 패키지 = 저장소 경로(githubs 루트 기준). 비고 'build: <명령>' 은 저장소 안에서 돌릴 빌드
+#   system   macOS 기본. 패키지 = 실제 경로. 설치하지 않는다
+#   prereq   선행 도구. 명령 = 도구 id, 패키지 = 설치 방법(manual | xcode-clt | dev-toolchain | cask:<이름>),
+#            비고 = 확인 방법('check: which <명령>' | 'check: run <명령...>' | 'check: cask <이름>')
+#            xcode-clt·homebrew 가 없으면 tools install 은 안내만 하고 멈춘다(sudo·GUI 가 필요해 dev-toolchain install 몫)
+# 정렬: prereq 행 먼저(xcode-clt homebrew git python3 uv java claude secretive 순, 그 밖은 이름순), 이어서 명령 이름순
+# 갱신: dev-toolchain workspace tools capture (명령 행만 bin/* 실체로 다시 쓰고 prereq 행은 그대로 둔다)
+# 새 Mac 에서 처음부터:
+#   1. xcode-select --install                          (Xcode Command Line Tools: git·python3)
+#   2. curl -fsSL .../dev-toolchain/.../install.sh | sh  (dev-toolchain install: Homebrew·asdf·런타임)
+#   3. dev-toolchain workspace bootstrap                (저장소 clone + 링크)
+#   4. dev-toolchain sync                               (opensource/in-use)
+#   5. dev-toolchain workspace tools install            (brew·cask·uv tool·sync·저장소 빌드·link)
+#   6. dev-toolchain workspace status && dev-toolchain workspace tools status
+xcode-clt	prereq	manual	check: run xcode-select -p
+homebrew	prereq	dev-toolchain	check: which brew
+git	prereq	xcode-clt	check: which git
+python3	prereq	xcode-clt	check: which python3
+uv	prereq	dev-toolchain	check: which uv
+java	prereq	dev-toolchain	check: which java
+claude	prereq	cask:claude-code	check: which claude
+secretive	prereq	cask:secretive	check: cask secretive
+actionlint	brew	actionlint
+agent-orchestrator	repo	coralstay-software-factory/components/agent-orchestrator	build: ./gradlew installDist
+agile-hooks-install	repo	coralstay-software-factory/components/claude-code-agile-hooks
+asdf	brew	asdf
+backlog	oss	Backlog.md
+bat	brew	bat
+bats	oss	bats-core
+btop	brew	btop
+build-diagrams	repo	coralstay-software-factory
+central-docs	repo	dev-tools/central-docs-collector
+check	repo	dev-tools/omnivim
+checkov	brew	checkov
+conftest	brew	conftest
+dev-toolchain	repo	dev-tools/dev-toolchain
+dev-toolchain-uninstall	repo	dev-tools/dev-toolchain
+docker-compose	brew	docker-compose
+doctree	repo	freeride/doctree	build: uv venv .venv && uv pip install --python .venv -e .
+fzf	oss	fzf
+fzf-tmux	oss	fzf
+gh	brew	gh
+git-commit-tool	repo	coralstay-software-factory/components/coding-agent-git-commit-tool
+gitleaks	brew	gitleaks
+hyperfine	brew	hyperfine
+infracost	brew	infracost
+jq	system	/usr/bin/jq
+k3d	brew	k3d
+k6	brew	k6
+krayctl	repo	dev-tools/ebpf-wire-to-code-tracer
+kubeconform	brew	kubeconform
+nvim	brew	neovim
+omnivim	repo	dev-tools/omnivim
+omnivim-ai	repo	dev-tools/omnivim
+podman	brew	podman
+practice	repo	dev-tools/omnivim
+reset	repo	dev-tools/omnivim
+rg	brew	ripgrep
+ruff	brew	ruff
+shellcheck	brew	shellcheck
+shellspec	oss	shellspec
+shfmt	brew	shfmt
+source-header	repo	dev-tools/source-header
+sqlfluff	brew	sqlfluff
+terraform	brew	terraform
+terraform-docs	brew	terraform-docs
+tflint	cask	tflint
+tig	brew	tig
+tldr	brew	tlrc
+tmux	brew	tmux
+tmuxinator	brew	tmuxinator
+tokei	brew	tokei
+trivy	brew	trivy
+vim	brew	vim
+vulture	uv-tool	vulture
+work-order	repo	coralstay-software-factory/components/claude-code-agile-hooks
+yq	oss	yq
