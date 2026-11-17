@@ -1,10 +1,10 @@
 ---
 id: TASK-177
 title: 'workspace: 링크 정리·정규화'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-11-17T13:00:00Z'
-updated_date: '2026-11-17T14:07:00Z'
+updated_date: '2026-11-17T14:10:00Z'
 labels:
   - workspace
   - symlink
@@ -48,7 +48,7 @@ dev-toolchain PR #3(TASK-176) 병합 — workspace/links.tsv 와 scripts/workspa
 <!-- AC:BEGIN -->
 - [x] #1 links.tsv 가 R1(home .local/bin/<cmd> 의 대상은 ~/githubs/bin/<cmd>)·R2(bin/* 와 .local/bin/* 이름 집합 같음, krayctl·source-header 보충)·R3(opensource 를 가리키는 링크는 current 경유, oh-my-zsh 2개 포함)을 지키고 그 규칙을 검사하는 테스트가 있다(B2)
 - [x] #2 실제 머신에 link --force 로 적용한 뒤 workspace status 가 0 이고 ~/.local/bin 의 모든 명령이 실제 파일로 풀린다. 적용 전 link --dry-run --force 출력에 WRONG-TARGET·MISSING 만 있다(B1)
-- [ ] #3 ~/.zshrc 41·42행 중복 PATH 줄을 지웠다. 백업(~/.zshrc.bak-2026-11-17)이 있고 새 대화형 zsh 의 PATH 에 ~/.local/bin 이 한 번만 있으며 다른 항목 순서는 이전과 같다(B3)
+- [x] #3 ~/.zshrc 41·42행 중복 PATH 줄을 지웠다. 백업(~/.zshrc.bak-2026-11-17)이 있고, 깨끗한 환경의 새 zsh 에서 중복을 뺀 실제 탐색 순서가 이전과 같다. .zprofile 13행은 로그인 비대화형 셸용이라 유지한다(유저 결정 2026-11-17)(B3)
 - [x] #4 ~/githubs/omnivim/bin 의 출처 조사 결과(rc·설정 검색, 부모 프로세스 환경, 새 터미널 재확인)가 Notes 에 있다
 - [x] #5 적용 후 capture 를 다시 돌리면 목록 diff 가 0 이다(목록 = 머신)
 <!-- AC:END -->
@@ -97,4 +97,13 @@ dev-toolchain PR #3(TASK-176) 병합 — workspace/links.tsv 와 scripts/workspa
 - .zshrc 41·42행 삭제(Antigravity 설치기 주석은 남김). 깨끗한 환경(env -i, zsh -il) 비교: ~/.local/bin 4회 → 2회, 중복 제거한 실제 탐색 순서는 이전과 동일. 남은 1회 중복은 .zprofile 13행(로그인 셸용, 계획대로 유지)
 - ~/githubs/omnivim/bin 출처: rc·~/.claude/settings 어디에도 없음. 깨끗한 환경 PATH 에는 0회. 이 세션의 부모 로그인 zsh(PID 52431)가 2026-10-29 09:45 에 시작 — omnivim 이 dev-tools/ 로 옮겨지기 전 환경을 물려받은 것. 새 터미널을 열면 사라진다
 - capture 재실행 후 git diff --exit-code workspace/ 0
+
+## 2026-11-17 AC #3 정정
+유저 결정: .zprofile 13행은 로그인 비대화형 셸(IDE·GUI 앱)이 읽는 유일한 경로라 유지하고 AC #3 을 '중복 줄 제거, 실제 탐색 순서 동일'로 고친다. 근거: 깨끗한 환경(env -i, zsh -il) ~/.local/bin 4회 → 2회(.zprofile 1 + .zshrc 57행 1), 중복을 뺀 순서 diff 없음.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+~/githubs/bin 을 명령의 유일한 허브로 정했다. workspace/links.tsv 에서 ~/.local/bin 54개를 전부 ~/githubs/bin/<cmd> 경유로 바꾸고, 빠져 있던 bin/krayctl 과 .local/bin/source-header 를 보충했으며, oh-my-zsh 플러그인 2개를 current 경유로 바꿨다. 규칙 R1~R3 을 테스트로 고정했고(목록 수정 전 3 실패 → 29 통과) 실제 머신에 link --force 로 적용했다(rm 44·ln 46, 실제 파일 0, status 정상 137·어긋남 0). 실행되는 바이너리는 바뀌지 않는다(Homebrew 31·opensource 6·내 저장소 15·기타 2). ~/.zshrc 의 ~/.local/bin 중복 2줄을 지웠고 실제 탐색 순서는 같다. PATH 의 없는 ~/githubs/omnivim/bin 은 2026-10-29 에 시작된 부모 셸의 옛 환경이라 새 터미널에서 사라진다. 백업: ~/githubs-backup/2026-11-17-links/, ~/.zshrc.bak-2026-11-17.
+<!-- SECTION:FINAL_SUMMARY:END -->
