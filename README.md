@@ -179,6 +179,37 @@ home      .tool-versions      ~/githubs/dev-tools/dev-toolchain/.tool-versions
 모든 명령은 `--dry-run`(또는 `DRY_RUN=true`)을 받으면 할 일만 `  + ` 줄로 보여 주고 아무것도 바꾸지 않습니다.
 `scripts/workspace.py`는 표준 라이브러리만 쓰므로 asdf를 깔기 전 macOS 시스템 `python3`(3.9)로도 돕니다.
 
+### 실행 파일 설치 목록 (`workspace/tools.tsv`)
+
+`~/githubs/bin/*` 명령은 진입점일 뿐이고 실체는 Homebrew·uv·opensource·내 저장소에 있습니다. 어떤 명령을 어디서
+설치하는지와 선행 도구를 `workspace/tools.tsv`가 SSOT로 담습니다(업스트림 소스 빌드는 하지 않습니다).
+
+```text
+# workspace/tools.tsv — <명령><TAB><공급자><TAB><패키지>[<TAB><비고>]
+homebrew            prereq   dev-toolchain   check: which brew
+gh                  brew     gh
+tflint              cask     tflint
+vulture             uv-tool  vulture
+backlog             oss      Backlog.md
+agent-orchestrator  repo     coralstay-software-factory/components/agent-orchestrator   build: ./gradlew installDist
+jq                  system   /usr/bin/jq
+```
+
+| 명령                                  | 하는 일                                                                                                  |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `workspace tools status` (기본)       | 행마다 `OK`/`MISSING`/`WRONG-PROVIDER`, `links.tsv`의 `bin/*`과 명령 집합 대조. 하나라도 어긋나면 종료 코드 1 |
+| `workspace tools install [--dry-run]` | 빠진 것만 설치: 선행 도구 확인 → `brew install` → `brew install --cask` → `uv tool install` → `dev-toolchain sync` → 저장소 빌드 → `workspace link`. 업그레이드·삭제는 하지 않는다. Xcode CLT·Homebrew가 없으면 안내만 하고 멈춘다 |
+| `workspace tools capture`             | `~/githubs/bin/*`의 실체로 명령 행을 다시 쓴다. 선행 도구(`prereq`) 행은 그대로 둔다                       |
+
+### 새 Mac에서 처음부터
+
+1. `xcode-select --install` — Xcode Command Line Tools(git·python3)
+2. [빠른 시작](#-빠른-시작)의 `curl … install.sh | sh` 한 줄 — Homebrew·asdf·언어 런타임
+3. `dev-toolchain workspace bootstrap` — 저장소 clone과 링크
+4. `dev-toolchain sync` — `opensource/in-use` 버전 폴더
+5. `dev-toolchain workspace tools install` — brew·cask·uv tool·저장소 빌드·링크
+6. `dev-toolchain workspace status && dev-toolchain workspace tools status` — 둘 다 종료 코드 0이면 끝
+
 <br>
 
 ## 목차

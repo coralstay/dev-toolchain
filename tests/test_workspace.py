@@ -216,6 +216,196 @@ def _untracked(w):
     os.symlink("../alpha/README", w.root / "bin" / "extra")
 
 
+# ---- TASK-178: workspace tools 샌드박스 ----
+# 가짜 brew·uv·git·xcode-select·claude 를 fakebin/ 에, 가짜 dev-toolchain install.sh 를 toolchain/ 에 둔다.
+# PATH 는 fakebin:/bin 뿐이라 진짜 Homebrew·uv·git 은 보이지 않는다. 가짜들은 받은 인자를 calls.log 에,
+# brew 는 HOMEBREW_NO_* 환경 변수를 brew-env.log 에 적는다. Homebrew 접두사는 HOMEBREW_PREFIX=brew/ 다.
+
+PREREQ_ROWS = [
+    "xcode-clt\tprereq\tmanual\tcheck: run xcode-select -p",
+    "homebrew\tprereq\tdev-toolchain\tcheck: which brew",
+    "git\tprereq\txcode-clt\tcheck: which git",
+    "uv\tprereq\tdev-toolchain\tcheck: which uv",
+    "claude\tprereq\tcask:claude-code\tcheck: which claude",
+    "secretive\tprereq\tcask:secretive\tcheck: cask secretive",
+]
+VENV_NOTE = "build: uv venv .venv && uv pip install --python .venv -e ."
+
+
+def _exe(path: Path, body: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("#!/bin/sh\n" + body)
+    os.chmod(path, 0o755)
+
+
+class ToolsWorld:
+    """One command per provider: rg(brew) tflint(cask) yq(oss) vulture(uv-tool) jq(system) tool·ao·dt(repo)."""
+
+    def __init__(self, tmp_path: Path):
+        b = Path(os.path.realpath(tmp_path))  # capture/status compare realpaths (/var -> /private/var)
+        self.base = b
+        self.home = b / "home"
+        self.root = self.home / "githubs"
+        self.manifest = b / "manifest"
+        self.prefix = b / "brew"
+        self.fakebin = b / "fakebin"
+        self.log = b / "calls.log"
+        self.brew_env = b / "brew-env.log"
+        self.toolchain = b / "toolchain" / "install.sh"
+        self.jq = b / "sys" / "jq"
+        for d in (self.home, self.root, self.manifest, self.prefix, self.fakebin):
+            d.mkdir(parents=True, exist_ok=True)
+        log = 'printf "%s\\n" "${0##*/} $*" >> "$TOOLS_LOG"\n'
+        _exe(
+            self.fakebin / "brew",
+            log + 'printf "%s %s %s\\n" "${HOMEBREW_NO_INSTALL_UPGRADE:-}" '
+            '"${HOMEBREW_NO_INSTALL_CLEANUP:-}" "${HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK:-}"'
+            ' >> "$TOOLS_BREW_ENV"\n',
+        )
+        _exe(self.fakebin / "uv", log)
+        _exe(self.fakebin / "git", log)
+        _exe(self.fakebin / "claude", log)
+        _exe(self.fakebin / "xcode-select", 'exit "${FAKE_XCODE_RC:-0}"\n')
+        _exe(self.toolchain, 'printf "%s\\n" "dev-toolchain $*" >> "$TOOLS_LOG"\n')
+        env = dict(os.environ)
+        for k in list(env):
+            if k.startswith(("HOMEBREW_", "UV_", "WORKSPACE_")) or k in ("DRY_RUN", "XDG_DATA_HOME"):
+                env.pop(k)
+        env.update(
+            HOME=str(self.home),
+            PATH=str(self.fakebin) + os.pathsep + "/bin",
+            WORKSPACE_ROOT=str(self.root),
+            WORKSPACE_MANIFEST_DIR=str(self.manifest),
+            WORKSPACE_TOOLCHAIN_INSTALL=str(self.toolchain),
+            HOMEBREW_PREFIX=str(self.prefix),
+            TOOLS_LOG=str(self.log),
+            TOOLS_BREW_ENV=str(self.brew_env),
+        )
+        self.env = env
+        self._build_machine()
+        self.write_manifest()
+
+    def _file(self, path: Path, text: str = "x\n") -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+    def _ln(self, link: Path, target: str) -> None:
+        link.parent.mkdir(parents=True, exist_ok=True)
+        if os.path.lexists(link):
+            os.unlink(link)
+        os.symlink(target, link)
+
+    def _build_machine(self) -> None:
+        p, r = self.prefix, self.root
+        # brew formula, reached the real way: bin -> opensource/in-use/<x>/current/bin -> prefix/bin -> Cellar
+        self._file(p / "Cellar" / "ripgrep" / "15.0" / "bin" / "rg")
+        self._ln(p / "bin" / "rg", "../Cellar/ripgrep/15.0/bin/rg")
+        self._ln(r / "opensource" / "in-use" / "ripgrep" / "current", "v15")
+        self._ln(r / "opensource" / "in-use" / "ripgrep" / "v15" / "bin" / "rg", str(p / "bin" / "rg"))
+        self._ln(r / "bin" / "rg", "../opensource/in-use/ripgrep/current/bin/rg")
+        # cask
+        self._file(p / "Caskroom" / "tflint" / "0.6" / "tflint")
+        self._ln(r / "bin" / "tflint", str(p / "Caskroom" / "tflint" / "0.6" / "tflint"))
+        (p / "Caskroom" / "secretive" / "2.4").mkdir(parents=True)
+        # oss (dev-toolchain sync output)
+        self._file(r / "opensource" / "in-use" / "yq" / "v4" / "bin" / "yq")
+        self._ln(r / "opensource" / "in-use" / "yq" / "current", "v4")
+        self._ln(r / "bin" / "yq", "../opensource/in-use/yq/current/bin/yq")
+        # uv tool
+        uvbin = self.home / ".local" / "share" / "uv" / "tools" / "vulture" / "bin" / "vulture"
+        self._file(uvbin)
+        self._ln(r / "bin" / "vulture", str(uvbin))
+        # system
+        self._file(self.jq)
+        self._ln(r / "bin" / "jq", str(self.jq))
+        # repos: plain script, gradle installDist, python .venv
+        (r / "dev" / "tool" / ".git").mkdir(parents=True)
+        self._file(r / "dev" / "tool" / "tool.sh")
+        self._ln(r / "bin" / "tool", "../dev/tool/tool.sh")
+        ao = r / "fac" / "ao"
+        (ao / ".git").mkdir(parents=True)
+        self._file(ao / "build.gradle.kts")
+        _exe(
+            ao / "gradlew",
+            'printf "%s\\n" "gradlew $* @ $(pwd -P)" >> "$TOOLS_LOG"\n'
+            "mkdir -p build/install/ao/bin && : > build/install/ao/bin/ao\n",
+        )
+        self._file(ao / "build" / "install" / "ao" / "bin" / "ao")
+        self._ln(r / "bin" / "ao", "../fac/ao/build/install/ao/bin/ao")
+        dt = r / "free" / "dt"
+        (dt / ".git").mkdir(parents=True)
+        self._file(dt / "pyproject.toml")
+        self._file(dt / ".venv" / "bin" / "dt")
+        self._ln(r / "bin" / "dt", "../free/dt/.venv/bin/dt")
+
+    def command_rows(self) -> list:
+        return [
+            "ao\trepo\tfac/ao\tbuild: ./gradlew installDist",
+            f"dt\trepo\tfree/dt\t{VENV_NOTE}",
+            f"jq\tsystem\t{self.jq}",
+            "rg\tbrew\tripgrep",
+            "tflint\tcask\ttflint",
+            "tool\trepo\tdev/tool",
+            "vulture\tuv-tool\tvulture",
+            "yq\toss\tyq",
+        ]
+
+    def write_manifest(self, extra_rows: tuple = ()) -> None:
+        rows = PREREQ_ROWS + self.command_rows() + list(extra_rows)
+        (self.manifest / "tools.tsv").write_text("# test tools\n" + "\n".join(rows) + "\n")
+        links = []
+        for e in sorted(os.listdir(self.root / "bin")):
+            links.append(f"githubs\tbin/{e}\t{os.readlink(self.root / 'bin' / e)}")
+        (self.manifest / "links.tsv").write_text("# test links\n" + "\n".join(links) + "\n")
+
+    def run(self, *args: str, python: str | None = None, extra_env: dict | None = None):
+        env = dict(self.env)
+        if extra_env:
+            env.update(extra_env)
+        return subprocess.run(
+            [python or sys.executable, str(SCRIPT), *args],
+            check=False,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+    def calls(self) -> list:
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    def snapshot(self) -> list:
+        out = []
+        for base in (self.home, self.manifest, self.prefix):
+            for dirpath, dirnames, filenames in os.walk(base):
+                dirnames.sort()
+                for n in sorted(dirnames + filenames):
+                    p = os.path.join(dirpath, n)
+                    kind = "L" if os.path.islink(p) else ("F" if os.path.isfile(p) else "D")
+                    out.append((p, kind, os.readlink(p) if kind == "L" else ""))
+        return out
+
+    def break_everything(self) -> None:
+        """Make one item of every install step missing (plus an extra missing brew row 'bat')."""
+        shutil.rmtree(self.prefix / "Cellar" / "ripgrep")  # brew: rg dangles through in-use
+        shutil.rmtree(self.prefix / "Caskroom" / "tflint")  # cask
+        shutil.rmtree(self.prefix / "Caskroom" / "secretive")  # prereq cask
+        os.unlink(self.fakebin / "claude")  # prereq cask claude-code
+        shutil.rmtree(self.home / ".local" / "share" / "uv" / "tools" / "vulture")  # uv tool
+        shutil.rmtree(self.root / "opensource" / "in-use" / "yq" / "v4")  # oss
+        shutil.rmtree(self.root / "fac" / "ao" / "build")  # repo build
+        os.unlink(self.root / "bin" / "tool")  # plain missing link -> link step
+        rows = self.command_rows() + ["bat\tbrew\tbat"]
+        (self.manifest / "tools.tsv").write_text("\n".join(PREREQ_ROWS + sorted(rows)) + "\n")
+        with open(self.manifest / "links.tsv", "a") as f:
+            f.write("githubs\tbin/bat\t../opensource/in-use/bat/current/bin/bat\n")
+
+
+@pytest.fixture
+def tools(tmp_path: Path) -> ToolsWorld:
+    return ToolsWorld(tmp_path)
+
+
 # == AC/DoD ==
 
 
@@ -494,6 +684,218 @@ def test_committed_links_opensource_targets_go_through_current():
     assert bad == []
 
 
+TOOL_PROVIDERS = {"brew", "cask", "uv-tool", "oss", "repo", "system", "prereq"}
+
+
+def committed_tools() -> list:
+    """Rows of this repo's committed workspace/tools.tsv (3 or 4 columns)."""
+    return [tuple(ln.split("\t")) for ln in data_lines(REPO / "workspace" / "tools.tsv")]
+
+
+def test_committed_tools_cover_exactly_the_bin_commands():
+    """TASK-178#1 TASK-178#B2 the command rows of tools.tsv and links.tsv githubs bin/* have the same names."""
+    hub = {link[len("bin/") :] for s, link, _ in committed_links() if s == "githubs" and link.startswith("bin/")}
+    cmds = [r[0] for r in committed_tools() if r[1] != "prereq"]
+    assert len(cmds) == len(set(cmds))
+    assert (sorted(hub - set(cmds)), sorted(set(cmds) - hub)) == ([], [])
+
+
+def test_committed_tools_rows_are_well_formed():
+    """TASK-178#1 every row has a valid provider and package; prereqs carry a check, builds a 'build:' note."""
+    rows = committed_tools()
+    assert rows
+    for row in rows:
+        assert len(row) in (3, 4) and all(row), row
+        assert row[1] in TOOL_PROVIDERS, row
+        if row[1] == "prereq":
+            assert row[3].startswith("check: "), row
+        elif len(row) == 4 and row[1] == "repo":
+            assert row[3].startswith("build: "), row
+    prereqs = {r[0] for r in rows if r[1] == "prereq"}
+    assert {"xcode-clt", "homebrew", "claude", "secretive"} <= prereqs
+    # deterministic order: prereq rows first, command rows sorted by name
+    kinds = [r[1] == "prereq" for r in rows]
+    assert kinds == sorted(kinds, reverse=True)
+    names = [r[0] for r in rows if r[1] != "prereq"]
+    assert names == sorted(names)
+
+
+def test_tools_status_all_ok_exits_zero(tools):
+    """TASK-178#2 tools status prints OK for every row (with the brew version) and exits 0."""
+    r = tools.run("tools", "status")
+    assert r.returncode == 0, r.stdout + r.stderr
+    for bad in ("MISSING", "WRONG-PROVIDER", "UNLISTED", "EXTRA"):
+        assert bad not in r.stdout
+    rg = [ln for ln in r.stdout.splitlines() if " rg " in ln]
+    assert rg and "OK" in rg[0] and "15.0" in rg[0]
+    assert r.stdout.count("OK") >= len(PREREQ_ROWS) + len(tools.command_rows())
+
+
+def _tools_missing_cmd(t):
+    shutil.rmtree(t.prefix / "Cellar" / "ripgrep")
+
+
+def _tools_missing_prereq(t):
+    os.unlink(t.fakebin / "claude")
+
+
+def _tools_missing_cask_prereq(t):
+    shutil.rmtree(t.prefix / "Caskroom" / "secretive")
+
+
+def _tools_wrong_provider(t):
+    os.unlink(t.root / "bin" / "rg")
+    os.symlink(str(t.home / ".local" / "share" / "uv" / "tools" / "vulture" / "bin" / "vulture"), t.root / "bin" / "rg")
+
+
+def _tools_unlisted(t):
+    with open(t.manifest / "links.tsv", "a") as f:
+        f.write("githubs\tbin/newcmd\t../dev/tool/tool.sh\n")
+
+
+def _tools_extra(t):
+    with open(t.manifest / "tools.tsv", "a") as f:
+        f.write("zz\tbrew\tzz\n")
+
+
+@pytest.mark.parametrize(
+    "label,mutate",
+    [
+        ("MISSING", _tools_missing_cmd),
+        ("MISSING", _tools_missing_prereq),
+        ("MISSING", _tools_missing_cask_prereq),
+        ("WRONG-PROVIDER", _tools_wrong_provider),
+        ("UNLISTED", _tools_unlisted),
+        ("EXTRA", _tools_extra),
+    ],
+)
+def test_tools_status_reports_each_drift_and_exits_one(tools, label, mutate):
+    """TASK-178#2 TASK-178#B2 MISSING / WRONG-PROVIDER rows and bin/* drift (UNLISTED, EXTRA) give exit 1."""
+    mutate(tools)
+    r = tools.run("tools", "status")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert label in r.stdout
+
+
+def test_tools_install_runs_steps_in_order_for_missing_only(tools):
+    """TASK-178#3 TASK-178#B1 install: brew -> cask -> uv tool -> sync -> repo build -> link, only what is missing."""
+    tools.break_everything()
+    r = tools.run("tools", "install")
+    assert r.returncode == 0, r.stdout + r.stderr
+    ao = os.path.realpath(tools.root / "fac" / "ao")
+    assert tools.calls() == [
+        "brew install --formula bat ripgrep",
+        "brew install --cask claude-code secretive tflint",
+        "uv tool install vulture",
+        "dev-toolchain sync",
+        f"gradlew installDist @ {ao}",
+    ]
+    # B1: brew install never upgrades or cleans up what is already there
+    assert tools.brew_env.read_text().splitlines() == ["1 1 1", "1 1 1"]
+    # link step ran last and restored the missing link
+    assert os.readlink(tools.root / "bin" / "tool") == "../dev/tool/tool.sh"
+    assert os.readlink(tools.root / "bin" / "bat") == "../opensource/in-use/bat/current/bin/bat"
+
+
+def test_tools_install_never_upgrades_or_uninstalls(tools):
+    """TASK-178#3 TASK-178#B1 nothing missing -> no external call at all; no run ever says upgrade/uninstall."""
+    r = tools.run("tools", "install")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert tools.calls() == []
+    assert "할 일 없음" in r.stdout
+    tools.break_everything()
+    assert tools.run("tools", "install").returncode == 0
+    for call in tools.calls():
+        for word in ("upgrade", "uninstall", "remove", "cleanup", "reinstall"):
+            assert word not in call.split(), call
+
+
+@pytest.mark.parametrize("which", ["xcode", "homebrew"])
+def test_tools_install_stops_with_guidance_when_xcode_or_homebrew_missing(tools, which):
+    """TASK-178#3 TASK-178#B3 missing Xcode CLT / Homebrew -> guidance, non-zero exit, nothing run or changed."""
+    tools.break_everything()
+    extra = {}
+    if which == "xcode":
+        extra["FAKE_XCODE_RC"] = "2"
+        hint = "xcode-select --install"
+    else:
+        os.unlink(tools.fakebin / "brew")
+        hint = "dev-toolchain install"
+    before = tools.snapshot()
+    r = tools.run("tools", "install", extra_env=extra)
+    assert r.returncode != 0
+    assert hint in r.stdout + r.stderr
+    assert tools.calls() == []
+    assert tools.snapshot() == before
+
+
+@pytest.mark.parametrize("how", ["flag", "flag-after", "env"])
+def test_tools_install_dry_run_runs_nothing(tools, how):
+    """TASK-178#3 TASK-178#B4 --dry-run / DRY_RUN=true prints every planned step and executes none of them."""
+    tools.break_everything()
+    before = tools.snapshot()
+    if how == "flag":
+        r = tools.run("--dry-run", "tools", "install")
+    elif how == "flag-after":
+        r = tools.run("tools", "install", "--dry-run")
+    else:
+        r = tools.run("tools", "install", extra_env={"DRY_RUN": "true"})
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert tools.calls() == []
+    assert tools.snapshot() == before
+    out = r.stdout
+    plans = [
+        "  + brew install --formula bat ripgrep",
+        "  + brew install --cask claude-code secretive tflint",
+        "  + uv tool install vulture",
+        "  + sh " + str(tools.toolchain) + " sync",
+        "./gradlew installDist",
+        "  + ln -s ../dev/tool/tool.sh",
+    ]
+    pos = [out.find(p) for p in plans]
+    assert -1 not in pos, out
+    assert pos == sorted(pos), out
+
+
+def test_tools_capture_is_deterministic_and_keeps_prereq_rows(tools):
+    """TASK-178#4 TASK-178#B5 capture classifies bin/* by realpath, keeps prereq rows verbatim, and is byte-stable."""
+    odd = "zz-custom\tprereq\tdev-toolchain\tcheck: which   uv   (손으로 쓴 행)"
+    stale = "gone\tbrew\tgone"
+    shuffled = [PREREQ_ROWS[3], odd, *PREREQ_ROWS[:3], *PREREQ_ROWS[4:], stale]
+    (tools.manifest / "tools.tsv").write_text("\n".join(shuffled) + "\n")
+    r = tools.run("tools", "capture")
+    assert r.returncode == 0, r.stdout + r.stderr
+    path = tools.manifest / "tools.tsv"
+    first = path.read_bytes()
+    assert first.startswith(b"#")
+    assert data_lines(path) == PREREQ_ROWS + [odd] + tools.command_rows()
+    assert str(tools.home) not in path.read_text().replace(str(tools.jq), "")
+    assert tools.run("tools", "capture").returncode == 0
+    assert path.read_bytes() == first
+    assert tools.run("tools", "status").returncode == 0
+
+
+def test_install_sh_dispatches_workspace_tools(tools):
+    """TASK-178#2 `sh install.sh workspace tools status` reaches the tools subcommand."""
+    r = subprocess.run(
+        ["sh", str(INSTALL), "workspace", "tools", "status"],
+        check=False,
+        env=dict(tools.env, PATH=tools.env["PATH"] + os.pathsep + os.path.dirname(SYSTEM_PYTHON)),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "OK" in r.stdout
+
+
+def test_tools_run_on_system_python(tools):
+    """TASK-178#6 tools --help / status / capture / install --dry-run run under the macOS system python3 (3.9)."""
+    for args in (("tools", "--help"), ("tools", "status"), ("tools", "capture"), ("tools", "install", "--dry-run")):
+        r = tools.run(*args, python=SYSTEM_PYTHON)
+        assert r.returncode == 0, (args, r.stdout + r.stderr)
+
+
 # == Coverage ==
 
 
@@ -520,3 +922,49 @@ def test_status_without_manifest_fails_cleanly(tmp_path):
     assert r.returncode == 2
     assert "Traceback" not in r.stderr
     assert "capture" in r.stderr
+
+
+def test_tools_default_subcommand_is_status(tools):
+    """`workspace tools` with no subcommand behaves like `tools status`."""
+    r = tools.run("tools")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "OK" in r.stdout
+
+
+def test_tools_invalid_provider_fails_cleanly(tools):
+    """An unknown provider in tools.tsv is a manifest error (exit 2), not a traceback."""
+    tools.write_manifest(extra_rows=("bad\tnpm\tbad",))
+    r = tools.run("tools", "status")
+    assert r.returncode == 2
+    assert "Traceback" not in r.stderr
+    assert "npm" in r.stderr
+
+
+def test_tools_capture_keeps_row_of_unresolvable_command(tools):
+    """capture keeps the existing row of a command whose link does not resolve, and skips (warns) an unknown one."""
+    shutil.rmtree(tools.prefix / "Cellar" / "ripgrep")
+    os.symlink("../nowhere", tools.root / "bin" / "ghost")
+    r = tools.run("tools", "capture")
+    assert r.returncode == 0, r.stdout + r.stderr
+    rows = data_lines(tools.manifest / "tools.tsv")
+    assert "rg\tbrew\tripgrep" in rows
+    assert not any(row.startswith("ghost\t") for row in rows)
+    assert "ghost" in r.stdout + r.stderr
+
+
+def test_tools_install_step_timeout(tools):
+    """A hanging install command is killed after WORKSPACE_TOOLS_TIMEOUT and the run exits 1."""
+    shutil.rmtree(tools.home / ".local" / "share" / "uv" / "tools" / "vulture")
+    _exe(tools.fakebin / "uv", "exec sleep 30\n")
+    r = tools.run("tools", "install", extra_env={"WORKSPACE_TOOLS_TIMEOUT": "1"})
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "timeout" in (r.stdout + r.stderr).lower()
+
+
+def test_tools_build_skipped_when_repo_missing(tools):
+    """A repo build whose repository is not cloned yet is reported (run bootstrap first), not attempted."""
+    shutil.rmtree(tools.root / "fac")
+    r = tools.run("tools", "install")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "bootstrap" in r.stdout + r.stderr
+    assert tools.calls() == []
