@@ -58,6 +58,16 @@ dev-toolchain project react-next
 # 글로벌 .tool-versions의 @oss 카탈로그 기준으로 ~/githubs/opensource/{in-use,to-study} 동기화
 dev-toolchain sync
 
+# ~/githubs 저장소 배치·심볼릭 링크를 workspace/*.tsv 목록과 비교 (어긋나면 종료 코드 1)
+dev-toolchain workspace status
+
+# 목록 기준으로 없는 링크 만들기 / 없는 저장소 clone 후 링크까지 (--dry-run 으로 미리보기)
+dev-toolchain workspace link --dry-run
+dev-toolchain workspace bootstrap
+
+# 지금 머신 상태를 목록 파일로 다시 기록
+dev-toolchain workspace capture
+
 # 전체 명령어 및 옵션 도움말 출력
 dev-toolchain --help
 ```
@@ -137,10 +147,45 @@ opensource/in-use/<오픈소스명>/
 
 <br>
 
+## 🗃️ 워크스페이스 배치·심볼릭 링크 목록 (`workspace/`)
+
+오픈소스는 위 `.tool-versions`(`@oss`)가 관리하고, 그 밖의 `~/githubs` 저장소 배치(경로 → 원격)와
+워크스페이스가 기대는 심볼릭 링크(`~/githubs/bin/*`, 워크스페이스 별칭, `~/.local/bin/*` 등)는
+아래 두 목록 파일이 SSOT입니다. 새 Mac에서는 `dev-toolchain workspace bootstrap` 한 번으로 저장소와
+링크를 되살립니다.
+
+```text
+# workspace/repos.tsv — <경로><TAB><원격 URL>   (경로는 githubs 루트 기준, 경로순 정렬)
+dev-tools/dev-toolchain     git@github.com:coralstay/dev-toolchain.git
+
+# workspace/links.tsv — <범위><TAB><링크><TAB><대상>   ((범위, 링크) 순 정렬)
+githubs   bin/dev-toolchain   ../dev-tools/dev-toolchain/install.sh
+home      .tool-versions      ~/githubs/dev-tools/dev-toolchain/.tool-versions
+```
+
+- 범위 `githubs`의 링크는 githubs 루트 기준, `home`은 `$HOME` 기준 상대 경로입니다. 대상은 `readlink` 값
+  그대로 적되, `$HOME`으로 시작하는 절대 경로는 `~`로 적어 목록에 `/Users/<이름>`이 남지 않게 합니다.
+- `capture`가 훑는 범위: 저장소는 깊이 1~3의 실제 폴더 중 원격이 `coralstay` 소유인 것(`opensource/`와
+  심볼릭 링크 너머는 제외), 링크는 githubs 루트 깊이 1·2(`bin/*` 포함)와 `~`, `~/.local/bin`,
+  `~/.oh-my-zsh/custom/plugins` 바로 아래 링크 중 githubs 루트 안을 가리키는 것입니다.
+
+| 명령                                | 하는 일                                                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `workspace status` (기본)           | 저장소 `OK`/`MISSING`/`WRONG-REMOTE`, 링크 `OK`/`MISSING`/`WRONG-TARGET`/`NOT-A-LINK`/`DANGLING`, 목록 밖 `UNTRACKED`를 출력. 하나라도 어긋나면 종료 코드 1 |
+| `workspace link [--force]`          | 없는 링크만 만든다(멱등). 실제 파일·폴더는 절대 덮어쓰지 않고, 대상이 다른 링크는 `--force`일 때만 바꾼다 |
+| `workspace bootstrap`               | 없는 저장소만 `git clone`(타임아웃 `WORKSPACE_GIT_TIMEOUT`, 기본 300초)한 뒤 `link`. 이미 있는 저장소는 pull·reset·remote 변경 없이 그대로 둔다 |
+| `workspace capture`                 | 지금 머신을 훑어 두 목록 파일을 다시 쓴다. 같은 상태에서 두 번 돌리면 결과가 바이트까지 같다              |
+
+모든 명령은 `--dry-run`(또는 `DRY_RUN=true`)을 받으면 할 일만 `  + ` 줄로 보여 주고 아무것도 바꾸지 않습니다.
+`scripts/workspace.py`는 표준 라이브러리만 쓰므로 asdf를 깔기 전 macOS 시스템 `python3`(3.9)로도 돕니다.
+
+<br>
+
 ## 목차
 
 - [CLI 명령어 사용법 (`dev-toolchain`)](#-cli-명령어-사용법-dev-toolchain)
 - [글로벌 / 로컬 `.tool-versions` 통합 명세 규격](#-글로벌--로컬-tool-versions-통합-명세-규격)
+- [워크스페이스 배치·심볼릭 링크 목록 (`workspace/`)](#-워크스페이스-배치심볼릭-링크-목록-workspace)
 - [빠른 시작](#-빠른-시작)
 - [사전 요구사항](#-사전-요구사항)
 - [설치/제거되는 것](#-설치제거되는-것)
@@ -285,10 +330,13 @@ install.sh/uninstall.sh가 각각 어떤 phase를 순서대로 거치는지, uni
 | `install.sh` / `uninstall.sh`            | CLI(`dev-toolchain`, `dev-toolchain-uninstall`) 및 curl-pipe 진입점                                            |
 | `.tool-versions`                         | 글로벌 언어 런타임(asdf) + 오픈소스 카탈로그(`# @oss`) 단일 SSOT 명세                                          |
 | `scripts/oss_sync.sh`                    | 글로벌/로컬 `.tool-versions` 파싱 및 `opensource/{in-use,to-study}` 조회·동기화(`status`/`current`/`project`/`sync`) |
+| `scripts/workspace.py`                   | `~/githubs` 저장소 배치·심볼릭 링크를 `workspace/*.tsv`와 비교·복원·기록(`workspace status`/`link`/`bootstrap`/`capture`), 표준 라이브러리만 사용 |
+| `workspace/`                             | 저장소 배치(`repos.tsv`)와 심볼릭 링크(`links.tsv`) 목록 SSOT — `workspace capture`가 생성                     |
 | `scripts/install/`, `scripts/uninstall/` | 번호가 매겨진 phase 스크립트(00, 01, 02, ...) + 각각의 `main.sh`                                               |
 | `scripts/lib.sh`                         | 설치/제거 전체가 공유하는 함수 라이브러리 (버전 fetch/캐시, 락, 타임아웃 등)                                   |
 | `scripts/lint/`                          | shellcheck 외에 이 저장소 자체 lint 스크립트(하드코딩 경로 검사 등)                                            |
 | `spec/`                                  | shellspec 테스트 스위트                                                                                        |
+| `tests/`                                 | pytest 테스트(`scripts/workspace.py`) — `uvx --with pytest pytest -q -p no:cacheprovider tests`               |
 | `docs/`                                  | 사람이 읽는 프로덕트 문서(아키텍처, 스타일 가이드, 조사 기록 등)                                               |
 | `backlog/`                               | Backlog.md CLI가 관리하는 태스크/의사결정/마일스톤 — 폴더별 역할은 [backlog/readme.md](backlog/readme.md) 참고 |
 
