@@ -1,7 +1,7 @@
 ---
-id: DRAFT-20
+id: TASK-179
 title: 'workspace: 저장소별 에이전트 담당 열과 workspace owner 명령'
-status: Draft
+status: To Do
 assignee: []
 created_date: '2026-11-22T11:20:00Z'
 updated_date: '2026-11-22T11:20:00Z'
