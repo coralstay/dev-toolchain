@@ -4,11 +4,15 @@ title: 'workspace: 저장소별 에이전트 담당 열과 workspace owner 명�
 status: To Do
 assignee: []
 created_date: '2026-11-22T11:20:00Z'
-updated_date: '2026-11-22T11:20:00Z'
+updated_date: '2026-11-22T11:25:00Z'
 labels:
   - workspace
   - agents
 dependencies: []
+references:
+  - TASK-176
+documentation:
+  - /Users/flynn_macpro/.claude/plans/agent-repo-split-record.md
 ---
 
 ## Description
