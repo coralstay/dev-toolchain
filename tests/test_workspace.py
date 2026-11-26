@@ -896,6 +896,108 @@ def test_tools_run_on_system_python(tools):
         assert r.returncode == 0, (args, r.stdout + r.stderr)
 
 
+# TASK-179: 저장소별 에이전트 담당(repos.tsv 3번째 열)과 workspace owner
+# 유저 결정(2026-11-22)의 분담표. 커밋된 workspace/repos.tsv 가 이 표와 같아야 한다.
+OWNERS = {
+    ".github-profile": "claude",
+    "coralstay-software-factory": "claude",
+    "coralstay-software-factory/components/agent-orchestrator": "claude",
+    "coralstay-software-factory/components/claude-code-agile-hooks": "claude",
+    "coralstay-software-factory/components/coding-agent-git-commit-tool": "claude",
+    "dev-tools/central-docs-collector": "antigravity",
+    "dev-tools/dev-toolchain": "claude",
+    "dev-tools/ebpf-wire-to-code-tracer": "claude-other",
+    "dev-tools/omnivim": "antigravity",
+    "dev-tools/source-header": "claude",
+    "freeride": "antigravity",
+    "freeride/coding-style-refactoring-principles": "antigravity",
+    "freeride/databases": "antigravity",
+    "freeride/devOps-LifeCycle": "antigravity",
+    "freeride/doctree": "antigravity",
+    "freeride/handcrafted-cpp": "antigravity",
+    "freeride/handcrafted-java": "antigravity",
+    "freeride/handcrafted-python": "antigravity",
+    "toy-project/react-next-spring-postgresql-terraform-aws": "claude-other",
+    "troubleshooting": "claude",
+    "upkeep": "claude",
+}
+
+
+def write_owned_manifest(w: World) -> None:
+    (w.manifest / "repos.tsv").write_text(
+        "# path<TAB>remote_url<TAB>owner\n"
+        f"alpha\t{w.url_alpha}\tclaude\n"
+        f"group/beta\t{w.url_beta}\tantigravity\n"
+    )
+
+
+def test_committed_repos_have_the_agreed_owner():
+    """TASK-179#1 TASK-179#B1 every committed repos.tsv row has an owner column equal to the user's split, and the header states the nearest-repo rule."""
+    text = (REPO / "workspace" / "repos.tsv").read_text()
+    rows = [ln.split("\t") for ln in text.splitlines() if ln and not ln.startswith("#")]
+    assert {r[0]: r[2] for r in rows} == OWNERS
+    assert all(len(r) == 3 for r in rows)
+    assert "가장 가까운" in text
+
+
+def test_capture_keeps_owner_values(world):
+    """TASK-179#2 TASK-179#B2 capture rewrites paths/URLs from the machine but keeps each repo's owner; a second capture is byte-identical."""
+    write_owned_manifest(world)
+    assert world.run("capture").returncode == 0
+    first = (world.manifest / "repos.tsv").read_text()
+    assert f"alpha\t{world.url_alpha}\tclaude" in first
+    assert f"group/beta\t{world.url_beta}\tantigravity" in first
+    assert world.run("capture").returncode == 0
+    assert (world.manifest / "repos.tsv").read_text() == first
+
+
+@pytest.mark.parametrize(
+    "path, owner",
+    [
+        ("alpha", "claude"),
+        ("alpha/tool.sh", "claude"),
+        ("group/beta/sub/file", "antigravity"),
+        ("alias", "antigravity"),
+    ],
+)
+def test_owner_resolves_nearest_listed_repo(world, path, owner):
+    """TASK-179#3 relative paths resolve against the githubs root to the nearest listed repo, following symlinks (alias -> group/beta)."""
+    write_owned_manifest(world)
+    r = world.run("owner", path)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert r.stdout.strip() == owner
+
+
+def test_owner_accepts_absolute_paths(world):
+    """TASK-179#3 absolute paths work too."""
+    write_owned_manifest(world)
+    r = world.run("owner", str(world.root / "group" / "beta"))
+    assert (r.returncode, r.stdout.strip()) == (0, "antigravity")
+
+
+@pytest.mark.parametrize("path", ["group", "nowhere/at/all", "/"])
+def test_owner_outside_listed_repos_is_unknown(world, path):
+    """TASK-179#3 TASK-179#B3 a path no listed repo contains is 'unknown' with exit 1, so the agent asks the user."""
+    write_owned_manifest(world)
+    r = world.run("owner", path)
+    assert (r.returncode, r.stdout.strip()) == (1, "unknown")
+
+
+def test_status_shows_owner(world):
+    """TASK-179#3 status prints each repo's owner."""
+    write_owned_manifest(world)
+    r = world.run("status")
+    assert "claude" in r.stdout and "antigravity" in r.stdout
+
+
+def test_owner_values_are_validated(world):
+    """TASK-179#4 an owner outside claude/antigravity/claude-other is a manifest error (exit 2)."""
+    (world.manifest / "repos.tsv").write_text(f"alpha\t{world.url_alpha}\tsomeone\n")
+    r = world.run("owner", "alpha")
+    assert r.returncode == 2
+    assert "담당" in r.stdout + r.stderr
+
+
 # == Coverage ==
 
 
