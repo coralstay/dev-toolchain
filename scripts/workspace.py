@@ -7,7 +7,7 @@
 # status: draft
 # task: TASK-176
 # created_date: '2026-11-17'
-# updated_date: '2026-11-17'
+# updated_date: '2026-11-26'
 # ---
 # dev-toolchain workspace [status|link|bootstrap|capture] [--dry-run]
 # dev-toolchain workspace tools [status|install|capture] [--dry-run]
@@ -46,8 +46,11 @@ SCOPES = ("githubs", "home")
 
 REPOS_HEADER = (
     "# workspace/repos.tsv - ~/githubs 아래 저장소 배치 목록 (SSOT, TASK-176)",
-    "# 형식: <경로><TAB><원격 URL>",
+    "# 형식: <경로><TAB><원격 URL><TAB><담당>",
     "#   경로: githubs 루트 기준 상대 경로. 경로순 정렬",
+    "#   담당(TASK-179): claude(이 저장소들을 맡은 Claude 세션) · antigravity · claude-other(다른 Claude 세션)",
+    "#   목록에 없는 경로의 담당 = 그 경로를 품은 가장 가까운 목록 저장소의 담당. 없으면 unknown(유저에게 묻는다)",
+    "#   조회: dev-toolchain workspace owner <경로>",
     "# 범위: 깊이 1~3, coralstay 소유 원격만. opensource/ 는 .tool-versions(@oss)가 관리해 뺀다",
     "# 갱신: dev-toolchain workspace capture (손으로 고쳐도 되지만 capture 가 다시 쓴다)",
 )
@@ -192,7 +195,7 @@ def plan(msg: str) -> None:
     print("  + " + msg)
 
 
-def read_tsv(path: str, ncols: int) -> list:
+def read_tsv(path: str, ncols: int, optional: int = 0) -> list:
     try:
         with open(path, encoding="utf-8") as f:
             lines = f.read().splitlines()
@@ -203,14 +206,48 @@ def read_tsv(path: str, ncols: int) -> list:
         if not line.strip() or line.startswith("#"):
             continue
         parts = line.split("\t")
-        if len(parts) != ncols or not all(parts):
+        if not ncols <= len(parts) <= ncols + optional or not all(parts):
             raise ManifestError(f"{path}:{n}: 탭으로 나뉜 값 {ncols}개가 필요합니다: {line!r}")
         rows.append(tuple(parts))
     return rows
 
 
+OWNERS = ("claude", "antigravity", "claude-other")
+
+
+def load_repo_rows(ctx: Ctx) -> list:
+    rows = read_tsv(ctx.repos_file, 2, optional=1)
+    for row in rows:
+        if len(row) == 3 and row[2] not in OWNERS:  # ---- 4
+            raise ManifestError(f"{ctx.repos_file}: {row[0]} 의 담당 '{row[2]}' 은 {'/'.join(OWNERS)} 중 하나여야 합니다")
+    return rows
+
+
 def load_repos(ctx: Ctx) -> list:
-    return read_tsv(ctx.repos_file, 2)
+    return [row[:2] for row in load_repo_rows(ctx)]
+
+
+def load_repo_owners(ctx: Ctx) -> dict:
+    return {row[0]: row[2] for row in load_repo_rows(ctx) if len(row) == 3}
+
+
+def owner_of(ctx: Ctx, path: str) -> str:
+    """TASK-179: 경로를 품은 가장 가까운(가장 깊은) 목록 저장소의 담당. 심볼릭 링크를 따라간 실제 경로도 본다."""
+    owners = load_repo_owners(ctx)
+    raw = path if os.path.isabs(path) else os.path.join(ctx.root, path)
+    candidates = {os.path.normpath(raw), os.path.realpath(raw)}
+    for rel in sorted(owners, key=lambda r: r.count("/"), reverse=True):  # ---- 5
+        base = os.path.join(ctx.root, rel)
+        for b in {os.path.normpath(base), os.path.realpath(base)}:
+            if any(c == b or c.startswith(b + os.sep) for c in candidates):
+                return owners[rel]
+    return "unknown"
+
+
+def cmd_owner(ctx: Ctx, path: str) -> int:
+    owner = owner_of(ctx, path)
+    print(owner)
+    return 1 if owner == "unknown" else 0  # ---- 6
 
 
 def load_links(ctx: Ctx) -> list:
@@ -320,11 +357,12 @@ def cmd_status(ctx: Ctx) -> int:
     links = load_links(ctx)
     drift = 0
     ok = 0
+    owners = load_repo_owners(ctx)
     print(f"[repos] {len(repos)}개  (root: {ctx.to_manifest(ctx.root)})")
     for rel, url in repos:
         state, actual = repo_state(ctx, rel, url)
         extra = f"want {url}  got {actual}" if state == "WRONG-REMOTE" else url
-        print(f"  {state:<13} {rel:<50} {extra}")
+        print(f"  {state:<13} {owners.get(rel, '-'):<12} {rel:<50} {extra}")
         drift += state != "OK"
         ok += state == "OK"
     print(f"[links] {len(links)}개")
@@ -361,13 +399,13 @@ def cmd_link(ctx: Ctx, dry: bool, force: bool) -> int:
             print(f"  DANGLING      {scope} {rel} -> {target} (링크는 맞음, 대상이 없음)")
             continue
         if state == "NOT-A-LINK":
-            print(f"  NOT-A-LINK    {scope} {rel} (실제 파일·폴더라 그대로 둠)")  # ---- 4
+            print(f"  NOT-A-LINK    {scope} {rel} (실제 파일·폴더라 그대로 둠)")  # ---- 7
             failed += 1
             continue
         try:
             if state == "WRONG-TARGET":
                 if not force:
-                    print(f"  WRONG-TARGET  {scope} {rel}: want {target} got {actual} (--force 로 교체)")  # ---- 5
+                    print(f"  WRONG-TARGET  {scope} {rel}: want {target} got {actual} (--force 로 교체)")  # ---- 8
                     failed += 1
                     continue
                 plan(f"rm {path}")
@@ -411,7 +449,7 @@ def run_bounded(argv: list, timeout: float, env: dict | None = None, cwd: str | 
     except OSError as exc:
         return f"{argv[0]} 실행 실패: {exc}"
     try:
-        rc = proc.wait(timeout=timeout)  # ---- 6
+        rc = proc.wait(timeout=timeout)  # ---- 9
         return None if rc == 0 else f"{argv[0]} 종료 코드 {rc}"
     except subprocess.TimeoutExpired:
         os.killpg(proc.pid, signal.SIGKILL)
@@ -424,7 +462,7 @@ def clone(url: str, dest: str, timeout: float) -> str | None:
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
     reason = run_bounded(["git", "clone", "--quiet", url, dest], timeout, env=env)
     if reason and os.path.lexists(dest):
-        shutil.rmtree(dest, ignore_errors=True)  # ---- 7
+        shutil.rmtree(dest, ignore_errors=True)  # ---- 10
     return reason
 
 
@@ -437,7 +475,7 @@ def cmd_bootstrap(ctx: Ctx, dry: bool) -> int:
         if state == "OK":
             continue
         if state == "WRONG-REMOTE":
-            print(f"  WRONG-REMOTE  {rel}: want {url} got {actual} (이미 있는 폴더라 그대로 둠)")  # ---- 8
+            print(f"  WRONG-REMOTE  {rel}: want {url} got {actual} (이미 있는 폴더라 그대로 둠)")  # ---- 11
             failed += 1
             continue
         dest = os.path.join(ctx.root, rel)
@@ -454,7 +492,7 @@ def cmd_bootstrap(ctx: Ctx, dry: bool) -> int:
 
 
 def render(header: tuple, rows: list) -> str:
-    lines = list(header) + ["\t".join(r) for r in sorted(rows)]  # ---- 9
+    lines = list(header) + ["\t".join(r) for r in sorted(rows)]  # ---- 12
     return "\n".join(lines) + "\n"
 
 
@@ -472,7 +510,9 @@ def write_file(path: str, text: str, dry: bool) -> None:
 def cmd_capture(ctx: Ctx, dry: bool) -> int:
     repos = scan_repos(ctx)
     links = scan_links(ctx)
-    write_file(ctx.repos_file, render(REPOS_HEADER, list(repos.items())), dry)
+    owners = load_repo_owners(ctx) if os.path.exists(ctx.repos_file) else {}
+    rows = [(rel, url, owners[rel]) if rel in owners else (rel, url) for rel, url in repos.items()]  # ---- 13
+    write_file(ctx.repos_file, render(REPOS_HEADER, rows), dry)
     write_file(
         ctx.links_file, render(LINKS_HEADER, [(s, r, t) for (s, r), t in links.items()]), dry
     )
@@ -680,7 +720,7 @@ def cmd_tools_status(ctx: Ctx) -> int:
     names = {t.cmd for t in cmds}
     unlisted = sorted(hub - names)
     extra_rows = sorted(names - hub)
-    print(f"[bin 대조] links.tsv githubs bin/* {len(hub)}개 vs tools.tsv 명령 {len(names)}개")  # ---- 10
+    print(f"[bin 대조] links.tsv githubs bin/* {len(hub)}개 vs tools.tsv 명령 {len(names)}개")  # ---- 14
     for n in unlisted:
         print(f"  {'UNLISTED':<15} {n} (links.tsv 에만 있음)")
     for n in extra_rows:
@@ -711,7 +751,7 @@ def plan_install(ctx: Ctx, rows: list, casks: set) -> tuple:
     def kept(sub: str, name: str) -> bool:
         return bool(prefix) and os.path.isdir(os.path.join(prefix, sub, name))
 
-    formulas = sorted({t.package for t in cmds if t.provider == "brew" and not kept("Cellar", t.package)})  # ---- 11
+    formulas = sorted({t.package for t in cmds if t.provider == "brew" and not kept("Cellar", t.package)})  # ---- 15
     casks = casks | {t.package for t in cmds if t.provider == "cask" and not kept("Caskroom", t.package)}
     uv_tools = sorted(
         {
@@ -726,7 +766,7 @@ def plan_install(ctx: Ctx, rows: list, casks: set) -> tuple:
         for t in cmds
     )
     brew_env = dict(os.environ, **BREW_SAFE_ENV)
-    steps = []  # ---- 12
+    steps = []  # ---- 16
     if formulas:
         steps.append(Step("brew install --formula " + " ".join(formulas), ["brew", "install", "--formula", *formulas], brew_env))
     if casks:
@@ -759,7 +799,7 @@ def cmd_tools_install(ctx: Ctx, dry: bool) -> int:
     timeout = env_timeout("WORKSPACE_TOOLS_TIMEOUT", DEFAULT_TOOLS_TIMEOUT)
     missing = [t for t in rows if t.is_prereq and not prereq_ok(ctx, t)]
     blocking = [t for t in missing if t.cmd in BLOCKING_PREREQS]
-    if blocking:  # ---- 13
+    if blocking:  # ---- 17
         for t in blocking:
             print(f"  MISSING         prereq   {t.cmd}: {prereq_guide(t)}")
         print("tools install: 선행 도구가 없어 아무것도 하지 않고 멈춥니다. 위 안내대로 설치한 뒤 다시 실행하세요")
@@ -782,7 +822,7 @@ def cmd_tools_install(ctx: Ctx, dry: bool) -> int:
         print("tools install: 할 일 없음 (빠진 실행 파일이 없습니다)")
     for s in steps:
         plan(s.text)
-        if dry:  # ---- 14
+        if dry:  # ---- 18
             continue
         reason = run_bounded(s.argv, timeout, env=s.env, cwd=s.cwd)
         if reason:
@@ -817,7 +857,7 @@ def cmd_tools_capture(ctx: Ctx, dry: bool) -> int:
         if not note and prev and (prev.provider, prev.package) == (provider, package):
             note = prev.note
         lines.append("\t".join([e.name, provider, package] + ([note] if note else [])))
-    body = [t.line for t in prereqs] + lines  # ---- 15
+    body = [t.line for t in prereqs] + lines  # ---- 19
     write_file(ctx.tools_file, "\n".join(list(TOOLS_HEADER) + body) + "\n", dry)
     print(f"capture: 선행 도구 {len(prereqs)}(보존) + 명령 {len(lines)}")
     return 0
@@ -844,12 +884,14 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[common],
         description="~/githubs 저장소 배치·심볼릭 링크를 workspace/*.tsv 목록과 맞춘다",
     )
-    sub = p.add_subparsers(dest="cmd", metavar="{status,link,bootstrap,capture,tools}")
+    sub = p.add_subparsers(dest="cmd", metavar="{status,link,bootstrap,capture,owner,tools}")
     sub.add_parser("status", parents=[common], help="목록과 비교해 출력(기본). 어긋나면 종료 1")
     lp = sub.add_parser("link", parents=[common], help="없는 링크 만들기")
     lp.add_argument("--force", action="store_true", help="대상이 다른 링크도 목록대로 바꾼다")
     sub.add_parser("bootstrap", parents=[common], help="없는 저장소 clone 후 link")
     sub.add_parser("capture", parents=[common], help="지금 머신을 목록 파일로 기록")
+    op = sub.add_parser("owner", parents=[common], help="경로의 담당 에이전트(claude·antigravity·claude-other, 모르면 unknown·종료 1)")
+    op.add_argument("path", help="githubs 루트 기준 상대 경로 또는 절대 경로")
     tp = sub.add_parser(
         "tools",
         parents=[common],
@@ -868,14 +910,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list | None = None) -> int:
-    args = build_parser().parse_args(argv)  # ---- 16
+    args = build_parser().parse_args(argv)  # ---- 20
     dry = bool(getattr(args, "dry_run", False)) or (
         os.environ.get("DRY_RUN", "").strip().lower() in ("1", "true", "yes")
     )
     ctx = Ctx()
     cmd = args.cmd or "status"
     tools_cmd = getattr(args, "tools_cmd", None) or "status"
-    if dry and cmd != "status" and not (cmd == "tools" and tools_cmd == "status"):
+    if dry and cmd not in ("status", "owner") and not (cmd == "tools" and tools_cmd == "status"):
         print("(dry-run: 아무것도 바꾸지 않습니다)")
     try:
         if cmd == "tools":
@@ -886,6 +928,8 @@ def main(argv: list | None = None) -> int:
             return cmd_bootstrap(ctx, dry)
         if cmd == "capture":
             return cmd_capture(ctx, dry)
+        if cmd == "owner":
+            return cmd_owner(ctx, args.path)
         return cmd_status(ctx)
     except ManifestError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -905,43 +949,56 @@ if __name__ == "__main__":
 # 3 목록에 홈 절대 경로를 남기지 않음(TASK-176 B4)
 #   설명: $HOME 으로 시작하는 절대 대상은 ~ 로 적고 읽을 때 지금 HOME 으로 되돌린다. 공개 저장소에 /Users/<이름> 이 들어가지 않고, 사용자 이름이 다른 머신에서도 같은 목록을 쓴다.
 #   관련: TASK-176 B4
-# 4 실제 파일·폴더는 덮어쓰지 않음(TASK-176 B1)
+# 4 담당 값 검증(TASK-179)
+#   설명: 담당 열은 claude · antigravity · claude-other 중 하나만 쓴다. 오타가 그대로 남으면 owner 가 엉뚱한 답을 내므로 목록 오류로 멈춘다(종료 2).
+#   관련: TASK-179, workspace/repos.tsv
+# 5 가장 가까운 목록 저장소의 담당(TASK-179 B1·B3)
+#   설명: 깊은 저장소부터 보며 경로가 그 저장소이거나 그 아래면 그 담당을 낸다. 저장소가 아닌 폴더(freeride/math 등)는 품은 저장소를 따른다. 별칭 링크는 실제 경로도 함께 봐서 freeride/dev-toolchain 이 dev-tools/dev-toolchain 의 담당으로 풀린다.
+#   관련: TASK-179, ~/githubs/freeride/dev-toolchain(별칭)
+#   개념: 최장 접두사 일치
+# 6 모르면 unknown 과 종료 1(TASK-179 B3)
+#   설명: 목록 저장소 밖 경로는 담당을 추측하지 않는다. unknown 을 출력하고 1로 끝나 에이전트가 유저에게 묻게 한다.
+#   개념: fail-closed
+# 7 실제 파일·폴더는 덮어쓰지 않음(TASK-176 B1)
 #   설명: 링크 자리에 진짜 파일·폴더가 있으면 --force 여도 보고만 하고 실패로 센다. 사람이 만든 내용을 잃는 것보다 손으로 정리하게 두는 편이 안전하다.
 #   관련: TASK-176 B1
-# 5 대상이 다른 링크는 --force 일 때만 교체(TASK-176 B2)
+# 8 대상이 다른 링크는 --force 일 때만 교체(TASK-176 B2)
 #   설명: 다른 대상은 의도한 로컬 변경일 수 있으므로 기본은 보고만 한다. 교체 직전에 다시 링크인지 확인한 뒤 지운다.
 #   관련: TASK-176 B2
-# 6 git clone 벽시계 타임아웃
+# 9 git clone 벽시계 타임아웃
 #   설명: DNS·TCP 단계에서 멈춘 clone 은 git 자체로는 끝나지 않는다. WORKSPACE_GIT_TIMEOUT(기본 300초)이 지나면 새 세션으로 띄운 프로세스 그룹 전체를 죽인다.
 #   관련: scripts/lib.sh lt_run_with_timeout (같은 문제의식)
 #   개념: 프로세스 그룹
-# 7 실패한 clone 의 반쯤 만든 폴더 정리
+# 10 실패한 clone 의 반쯤 만든 폴더 정리
 #   설명: MISSING 일 때만 clone 하므로 dest 는 이번 실행이 만든 것이다. 남겨 두면 다음 실행에서 '이미 있는 저장소'로 보여 B3 때문에 영영 손대지 못한다.
-# 8 이미 있는 저장소는 건드리지 않음(TASK-176 B3)
+# 11 이미 있는 저장소는 건드리지 않음(TASK-176 B3)
 #   설명: bootstrap 은 없는 저장소만 clone 한다. 원격이 다른 폴더도 pull·reset·remote 변경 없이 보고만 하고 실패로 센다.
 #   관련: TASK-176 B3
-# 9 결정적 출력(TASK-176 B5)
+# 12 결정적 출력(TASK-176 B5)
 #   설명: 행을 정렬하고 머리 주석이 고정이라 같은 머신 상태에서 capture 를 두 번 돌리면 바이트까지 같다. 디렉터리 순회도 이름순이다.
 #   관련: TASK-176 B5
-# 10 bin/* 와 tools.tsv 명령 집합 대조(TASK-178 B2)
+# 13 capture 는 담당을 보존(TASK-179 B2)
+#   설명: capture 는 경로 · URL 만 머신에서 알아낸다. 담당은 사람이 정한 값이라 기존 행의 값을 그대로 이어 붙인다. 새로 생긴 저장소는 담당 없이(2열) 들어가고 status 에 '-' 로 보인다.
+#   관련: TASK-178 의 tools capture 비고 보존(같은 방식)
+# 14 bin/* 와 tools.tsv 명령 집합 대조(TASK-178 B2)
 #   설명: links.tsv 의 githubs bin/* 이름과 tools.tsv 명령 이름이 같아야 한다. 한쪽에만 있으면 어긋남으로 세어 status 가 1 이 된다. 커밋된 두 목록은 테스트도 같은 규칙으로 검사한다.
 #   관련: workspace/links.tsv, workspace/tools.tsv, TASK-178 B2
-# 11 빠진 것만 설치, 업그레이드·삭제 없음(TASK-178 B1)
+# 15 빠진 것만 설치, 업그레이드·삭제 없음(TASK-178 B1)
 #   설명: Cellar·Caskroom·uv tool 폴더에 이미 있으면 설치 목록에서 뺀다. brew install 은 HOMEBREW_NO_INSTALL_UPGRADE 등으로 이미 있는 의존성을 올리지 않게 하고, upgrade·uninstall 은 어디서도 부르지 않는다.
 #   관련: BREW_SAFE_ENV, TASK-178 B1
 #   개념: 멱등
-# 12 설치 순서
+# 16 설치 순서
 #   설명: brew formula → cask → uv tool → dev-toolchain sync(oss) → 저장소 빌드 → link 순서다. oss 의 일부는 Homebrew 실행 파일을 가리키므로 sync 는 brew 뒤에, link 는 모든 실체가 생긴 뒤에 온다. 같은 공급자는 한 번에 묶어 부른다.
 #   관련: scripts/oss_sync.sh populate_ref_bins, TASK-178 AC #3
-# 13 Xcode CLT·Homebrew 가 없으면 안내만 하고 멈춤(TASK-178 B3)
+# 17 Xcode CLT·Homebrew 가 없으면 안내만 하고 멈춤(TASK-178 B3)
 #   설명: 둘 다 sudo 나 GUI 확인이 필요해 이 명령이 대신 설치하지 않는다. 설치 방법을 알려 주고 다른 단계는 하나도 실행하지 않은 채 1 로 끝난다. 설치는 dev-toolchain install(curl | sh) 몫이다.
 #   관련: BLOCKING_PREREQS, scripts/install/01_bootstrap_asdf.sh, TASK-178 B3
-# 14 --dry-run 은 아무것도 실행하지 않음(TASK-178 B4)
+# 18 --dry-run 은 아무것도 실행하지 않음(TASK-178 B4)
 #   설명: 계획 줄만 출력하고 외부 명령을 부르지 않는다. 마지막 link 단계도 같은 dry 값을 받는다.
 #   관련: TASK-178 B4
-# 15 capture 는 prereq 행을 보존(TASK-178 B5)
+# 19 capture 는 prereq 행을 보존(TASK-178 B5)
 #   설명: 선행 도구 행은 bin/* 에서 알아낼 수 없어 손으로 적은 것이다. capture 는 명령 행만 다시 쓰고 prereq 행은 고정 순서로 그대로 둔다. 같은 상태에서 두 번 돌리면 바이트까지 같다.
 #   관련: PREREQ_ORDER, TASK-178 B5
-# 16 진입점: 서브커맨드 해석
+# 20 진입점: 서브커맨드 해석
 #   설명: 서브커맨드가 없으면 status 다. --dry-run 은 서브커맨드 앞뒤 어디에 와도 되고 DRY_RUN=true(설치기와 같은 관례)와 같다. install.sh 가 'workspace' 를 떼고 나머지 인자를 넘긴다. tools 는 status·install·capture 를 가진 하위 그룹이다.
 #   관련: install.sh, scripts/lib.sh (DRY_RUN)
